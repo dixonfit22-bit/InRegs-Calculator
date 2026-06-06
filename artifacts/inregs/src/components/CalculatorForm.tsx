@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ResultSection } from "./ResultSection";
 import { LoadProfilePanel } from "./ProfileLoader";
 import { MarineProfile, setActiveProfileId as persistActiveId } from "@/lib/storage";
+import { useEffect } from "react";
 
 const INITIAL_FORM: FormData = {
   sex: "",
@@ -21,7 +22,12 @@ const INITIAL_FORM: FormData = {
   cftScore: "",
 };
 
-export function CalculatorForm() {
+interface CalculatorFormProps {
+  profileToLoad?: MarineProfile | null;
+  onProfileLoaded?: () => void;
+}
+
+export function CalculatorForm({ profileToLoad, onProfileLoaded }: CalculatorFormProps = {}) {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [result, setResult] = useState<RegResult | null>(null);
@@ -47,6 +53,15 @@ export function CalculatorForm() {
     setErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Load a profile passed in from the Command Dashboard "Edit" action
+  useEffect(() => {
+    if (profileToLoad) {
+      handleLoadProfile(profileToLoad);
+      onProfileLoaded?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileToLoad]);
 
   const handleChange = (field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));

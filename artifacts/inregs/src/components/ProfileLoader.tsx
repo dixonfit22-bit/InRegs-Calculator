@@ -14,6 +14,7 @@ import {
   newProfileId,
   getActiveProfileId,
   setActiveProfileId,
+  pushAssessmentHistory,
 } from "@/lib/storage";
 import { RegResult } from "@/lib/marineStandards";
 import { FormData } from "@/lib/validation";
@@ -46,7 +47,7 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
     const existing = activeProfileId
       ? loadProfiles().find((p) => p.id === activeProfileId)
       : null;
-    return {
+    const base: MarineProfile = {
       id,
       name: profileName,
       createdAt: existing?.createdAt ?? now,
@@ -70,7 +71,21 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
       goalWeight: existing?.goalWeight,
       weeklyGoalLbs: existing?.weeklyGoalLbs,
       weightLog: existing?.weightLog ?? [],
+      assessmentHistory: existing?.assessmentHistory ?? [],
     };
+    // Push this assessment as a history entry
+    return pushAssessmentHistory(base, {
+      date: now,
+      weight: Number(inputs.weightLbs),
+      neckInches: Number(inputs.neckInches),
+      waistInches: Number(inputs.waistInches),
+      hipInches: inputs.hipInches ? Number(inputs.hipInches) : undefined,
+      pftScore: Number(inputs.pftScore),
+      cftScore: Number(inputs.cftScore),
+      estimatedBodyFat: result.estimatedBodyFat,
+      riskLevel: result.riskLevel,
+      passFailStatus: result.passFailStatus,
+    });
   };
 
   const doSave = (profileName: string) => {

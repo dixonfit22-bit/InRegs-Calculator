@@ -1,0 +1,106 @@
+Update the InRegs dashboard and roster with the following improvements:
+
+1. Rename the “H/W Flagged” card to “Tape Required”
+- Keep the icon if already working.
+- Subtitle should say: “Over H/W table — tape required”
+- This should represent Marines who exceed the height/weight table and require tape, not necessarily failures.
+
+2. Keep the “In Regs (Passing)” card logic
+- Count all Marines who are currently passing standards.
+- Marines in Watch Zone should still count as In Regs if they are passing.
+- Subtitle should say: “Incl. Watch Zone Marines”
+
+3. Improve the Watch Zone card
+- Show the total number of Marines in Watch Zone.
+- Also show either:
+  - closest Marine’s BF% to the limit, or
+  - how close the closest Marine is to failure.
+- Example subtitle:
+  “Closest: 0.7% from limit”
+- If no Marines are in Watch Zone, show:
+  “No Marines near limit”
+
+4. Add a Marine Details drawer/modal
+When a user taps a Marine in the roster, open a mobile-friendly details panel showing:
+
+- Rank and name
+- Date recorded
+- Height
+- Weight
+- Neck
+- Waist
+- Body Fat %
+- Maximum allowed Body Fat %
+- Over table weight: Yes/No
+- Tape required: Yes/No
+- Status:
+  - Passing
+  - Watch Zone
+  - BF Failure
+
+Example layout:
+
+Sgt Dixon
+
+Recorded: Jun 6, 2026
+
+Height: 67"
+Weight: 180 lbs
+Neck: 17"
+Waist: 35.5"
+
+Body Fat: 19.3%
+Max Allowed: 20%
+
+Tape Required: Yes
+Over H/W Table: Yes
+
+Status:
+✅ Passing
+🟡 Watch Zone
+
+Add Edit and Delete buttons inside the drawer/modal.
+
+5. Add body fat history tracking
+Each Marine profile should support multiple saved entries over time.
+
+Show a simple history section with:
+
+Date | Weight | BF%
+
+Example:
+
+Jun 6, 2026 | 180 lbs | 19.3%
+May 1, 2026 | 184 lbs | 20.2%
+Apr 1, 2026 | 188 lbs | 21.5%
+
+6. Add a basic trend indicator
+For each Marine with more than one entry, show:
+
+- Improving if BF% is going down
+- Worsening if BF% is going up
+- Stable if BF% is unchanged
+
+Example:
+Trend: Improving ↓
+
+7. Add search to the Marine Roster
+Place a search bar above the roster.
+
+Placeholder:
+“Search Marine…”
+
+Search should filter by:
+- Name
+- Rank
+- Date
+
+8. Keep mobile-first styling
+Everything must look clean on iPhone.
+Cards should remain readable.
+The details drawer/modal should not overflow off screen.
+
+9. Do not break the current calculator, standards tab, dashboard, saved profiles, or existing pass/fail logic.
+
+Goal:
+Make InRegs feel less like a single calculator and more like a Marine readiness management tool for leaders.

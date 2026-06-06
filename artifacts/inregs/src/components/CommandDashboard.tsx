@@ -2,9 +2,10 @@
  * CommandDashboard — Aggregate readiness view across all saved profiles.
  */
 import { useState, useEffect } from "react";
-import { Users, ShieldCheck, Zap, Scale, Activity, Trash2, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { MarineProfile, loadProfiles, deleteProfile } from "@/lib/storage";
+import { Users, ShieldCheck, Zap, Scale, Activity, RefreshCw, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MarineProfile, loadProfiles, deleteProfile, computeTrend } from "@/lib/storage";
+import { MarineDetailDrawer } from "./MarineDetailDrawer";
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,7 @@ function StatCard({
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
       </div>
       <p className={`text-2xl font-mono font-bold ${colors.text}`}>{value}</p>
-      {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+      {sub && <p className="text-[10px] text-muted-foreground leading-relaxed">{sub}</p>}
     </div>
   );
 }
@@ -56,6 +57,18 @@ function RiskBadge({ risk }: { risk: string }) {
   );
 }
 
+// ── Trend Pill ────────────────────────────────────────────────────────────────
+
+function TrendPill({ trend }: { trend: "Improving" | "Worsening" | "Stable" | null }) {
+  if (!trend) return null;
+  const cfg = {
+    Improving: { label: "↓", color: "text-primary" },
+    Worsening: { label: "↑", color: "text-destructive" },
+    Stable:    { label: "→", color: "text-muted-foreground" },
+  }[trend];
+  return <span className={`text-[11px] font-bold ${cfg.color}`}>{cfg.label}</span>;
+}
+
 // ── Empty State ───────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -74,33 +87,63 @@ function EmptyState() {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export function CommandDashboard() {
+interface CommandDashboardProps {
+  onEdit: (profile: MarineProfile) => void;
+}
+
+export function CommandDashboard({ onEdit }: CommandDashboardProps) {
   const [profiles, setProfiles] = useState<MarineProfile[]>([]);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<MarineProfile | null>(null);
 
   const refresh = () => setProfiles(loadProfiles());
 
   useEffect(() => { refresh(); }, []);
 
+  // ── Aggregate metrics ────────────────────────────────────────────────────────
   const total       = profiles.length;
   const passed      = profiles.filter((p) => p.passFailStatus === "PASS").length;
   const watchZone   = profiles.filter((p) => p.riskLevel === "Watch Zone").length;
-  const hwFlagged   = profiles.filter((p) => p.overWeightLimit).length;
+  const tapeReq     = profiles.filter((p) => p.tapeRequired).length;
   const bfFailed    = profiles.filter((p) => p.passFailStatus === "FAIL").length;
   const passRate    = total > 0 ? Math.round((passed / total) * 100) : 0;
+
+  // Watch Zone: find closest marine to BF limit
+  const watchZoneProfiles = profiles.filter((p) => p.riskLevel === "Watch Zone");
+  const closestGap = watchZoneProfiles.length > 0
+    ? Math.min(...watchZoneProfiles.map((p) => p.effectiveMaxBodyFat - p.estimatedBodyFat))
+    : null;
+  const watchZoneSub = closestGap !== null
+    ? `Closest: ${Math.abs(closestGap).toFixed(1)}% from limit`
+    : "No Marines near limit";
 
   const passColor: "primary" | "yellow" | "red" =
     passRate >= 80 ? "primary" : passRate >= 60 ? "yellow" : "red";
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  // ── Roster filtering ─────────────────────────────────────────────────────────
+  const q = search.trim().toLowerCase();
+  const filtered = profiles
+    .slice()
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .filter((p) => {
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        formatDate(p.updatedAt).toLowerCase().includes(q)
+      );
     });
 
   const handleDelete = (id: string) => {
     deleteProfile(id);
+    setSelected(null);
     refresh();
+  };
+
+  const handleEdit = (profile: MarineProfile) => {
+    onEdit(profile);
   };
 
   return (
@@ -144,7 +187,7 @@ export function CommandDashboard() {
               icon={<Zap className="w-3.5 h-3.5" />}
               label="Watch Zone"
               value={watchZone}
-              sub={total > 0 ? `${Math.round((watchZone / total) * 100)}% of unit` : undefined}
+              sub={watchZoneSub}
               color={watchZone > 0 ? "yellow" : "muted"}
             />
             <StatCard
@@ -156,16 +199,16 @@ export function CommandDashboard() {
             />
             <StatCard
               icon={<Scale className="w-3.5 h-3.5" />}
-              label="H/W Flagged"
-              value={hwFlagged}
+              label="Tape Required"
+              value={tapeReq}
               sub="Over H/W table — tape required"
-              color={hwFlagged > 0 ? "yellow" : "muted"}
+              color={tapeReq > 0 ? "yellow" : "muted"}
             />
             <StatCard
               icon={<ShieldCheck className="w-3.5 h-3.5" />}
               label="In Regs (Passing)"
               value={passed}
-              sub={watchZone > 0 ? `Incl. ${watchZone} in Watch Zone` : "All clear of BF limits"}
+              sub="Incl. Watch Zone Marines"
               color={passed === total ? "primary" : "muted"}
             />
           </div>
@@ -187,52 +230,71 @@ export function CommandDashboard() {
           </div>
 
           {/* Marine roster */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Marine Roster
             </p>
-            <div className="border border-border rounded-md overflow-hidden">
-              <div className="grid grid-cols-[1fr_auto_auto] text-[9px] font-bold uppercase tracking-widest text-muted-foreground px-4 py-2 bg-muted/30">
-                <span>Name / Date</span>
-                <span className="text-right pr-3">BF%</span>
-                <span />
-              </div>
-              <div className="flex flex-col divide-y divide-border">
-                {profiles
-                  .slice()
-                  .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                  .map((p) => (
-                    <div
-                      key={p.id}
-                      className="grid grid-cols-[1fr_auto_auto] items-center px-4 py-2.5 gap-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-xs font-mono font-bold text-foreground truncate">{p.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          <p className="text-[10px] text-muted-foreground">
-                            {formatDate(p.updatedAt)} · {p.weightLbs} lbs
-                          </p>
-                          <RiskBadge risk={p.riskLevel} />
-                        </div>
-                      </div>
-                      <p className="text-xs font-mono text-foreground pr-2">
-                        {p.estimatedBodyFat}%
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(p.id)}
-                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        aria-label={`Delete ${p.name}`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-              </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search Marine…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 bg-card font-mono text-sm h-9"
+              />
             </div>
+
+            {filtered.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No Marines match "{search}"</p>
+            ) : (
+              <div className="border border-border rounded-md overflow-hidden">
+                <div className="grid grid-cols-[1fr_auto_auto] text-[9px] font-bold uppercase tracking-widest text-muted-foreground px-4 py-2 bg-muted/30">
+                  <span>Name / Date</span>
+                  <span className="text-right pr-3">BF%</span>
+                  <span className="text-right">Trend</span>
+                </div>
+                <div className="flex flex-col divide-y divide-border">
+                  {filtered.map((p) => {
+                    const trend = computeTrend(p);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelected(p)}
+                        className="grid grid-cols-[1fr_auto_auto] items-center px-4 py-3 gap-2 text-left w-full hover:bg-muted/30 active:bg-muted/50 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-mono font-bold text-foreground truncate">{p.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <p className="text-[10px] text-muted-foreground">
+                              {formatDate(p.updatedAt)} · {p.weightLbs} lbs
+                            </p>
+                            <RiskBadge risk={p.riskLevel} />
+                          </div>
+                        </div>
+                        <p className="text-xs font-mono text-foreground pr-3">
+                          {p.estimatedBodyFat}%
+                        </p>
+                        <TrendPill trend={trend} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
+
+      {/* Marine detail drawer */}
+      <MarineDetailDrawer
+        profile={selected}
+        onClose={() => setSelected(null)}
+        onDelete={handleDelete}
+        onEdit={handleEdit}
+      />
     </div>
   );
 }

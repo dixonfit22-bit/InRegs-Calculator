@@ -5,6 +5,20 @@
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface AssessmentHistoryEntry {
+  id: string;
+  date: string; // ISO 8601
+  weight: number;
+  neckInches: number;
+  waistInches: number;
+  hipInches?: number;
+  pftScore: number;
+  cftScore: number;
+  estimatedBodyFat: number;
+  riskLevel: "In Regs" | "Watch Zone" | "Out of Regs";
+  passFailStatus: "PASS" | "FAIL";
+}
+
 export interface WeightEntry {
   id: string;
   date: string; // ISO 8601 date string
@@ -17,7 +31,7 @@ export interface MarineProfile {
   name: string;
   createdAt: string; // ISO
   updatedAt: string; // ISO
-  // Assessment inputs (mirrors FormData but typed)
+  // Assessment inputs
   sex: string;
   age: string;
   heightInches: string;
@@ -27,7 +41,7 @@ export interface MarineProfile {
   hipInches: string;
   pftScore: string;
   cftScore: string;
-  // Assessment result snapshot
+  // Latest assessment result snapshot
   riskLevel: "In Regs" | "Watch Zone" | "Out of Regs";
   passFailStatus: "PASS" | "FAIL";
   estimatedBodyFat: number;
@@ -39,12 +53,14 @@ export interface MarineProfile {
   goalWeight?: number;
   weeklyGoalLbs?: number;
   weightLog: WeightEntry[];
+  // Assessment history (one entry per save/update)
+  assessmentHistory: AssessmentHistoryEntry[];
 }
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
 
-const PROFILES_KEY        = "inregs_profiles";
-const ACTIVE_PROFILE_KEY  = "inregs_active_profile_id";
+const PROFILES_KEY       = "inregs_profiles";
+const ACTIVE_PROFILE_KEY = "inregs_active_profile_id";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -65,10 +81,19 @@ function store(key: string, value: unknown): void {
   }
 }
 
+/** Ensure legacy profiles have all required fields */
+function migrateProfile(p: Partial<MarineProfile>): MarineProfile {
+  return {
+    ...(p as MarineProfile),
+    weightLog: p.weightLog ?? [],
+    assessmentHistory: p.assessmentHistory ?? [],
+  };
+}
+
 // ── Profiles CRUD ─────────────────────────────────────────────────────────────
 
 export function loadProfiles(): MarineProfile[] {
-  return read<MarineProfile[]>(PROFILES_KEY, []);
+  return read<Partial<MarineProfile>[]>(PROFILES_KEY, []).map(migrateProfile);
 }
 
 export function getProfile(id: string): MarineProfile | null {
@@ -106,7 +131,7 @@ export function setActiveProfileId(id: string | null): void {
   }
 }
 
-// ── Weight Log helpers ────────────────────────────────────────────────────────
+// ── Weight Log ────────────────────────────────────────────────────────────────
 
 export function addWeightEntry(profileId: string, entry: Omit<WeightEntry, "id">): void {
   const profile = getProfile(profileId);
@@ -124,14 +149,46 @@ export function removeWeightEntry(profileId: string, entryId: string): void {
   upsertProfile({ ...profile, weightLog: profile.weightLog.filter((e) => e.id !== entryId) });
 }
 
-export function updateProfileGoal(
-  profileId: string,
-  goalWeight: number,
-  weeklyGoalLbs: number
-): void {
+export function updateProfileGoal(profileId: string, goalWeight: number, weeklyGoalLbs: number): void {
   const profile = getProfile(profileId);
   if (!profile) return;
   upsertProfile({ ...profile, goalWeight, weeklyGoalLbs });
+}
+
+// ── Assessment History ────────────────────────────────────────────────────────
+
+export function pushAssessmentHistory(
+  profile: MarineProfile,
+  entry: Omit<AssessmentHistoryEntry, "id">
+): MarineProfile {
+  const last = profile.assessmentHistory.at(-1);
+  // Avoid exact-duplicate entries (same weight + BF on same date)
+  const today = new Date().toISOString().slice(0, 10);
+  if (
+    last &&
+    last.date.startsWith(today) &&
+    last.weight === entry.weight &&
+    last.estimatedBodyFat === entry.estimatedBodyFat
+  ) {
+    return profile; // skip duplicate
+  }
+  const newEntry: AssessmentHistoryEntry = { ...entry, id: crypto.randomUUID() };
+  return { ...profile, assessmentHistory: [...profile.assessmentHistory, newEntry] };
+}
+
+// ── Trend ─────────────────────────────────────────────────────────────────────
+
+export type TrendDirection = "Improving" | "Worsening" | "Stable";
+
+export function computeTrend(profile: MarineProfile): TrendDirection | null {
+  const h = profile.assessmentHistory;
+  if (h.length < 2) return null;
+  const sorted = [...h].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const latest = sorted.at(-1)!.estimatedBodyFat;
+  const prev   = sorted.at(-2)!.estimatedBodyFat;
+  if (latest < prev) return "Improving";
+  if (latest > prev) return "Worsening";
+  return "Stable";
 }
 
 // ── ID factory ────────────────────────────────────────────────────────────────
