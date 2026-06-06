@@ -1,0 +1,267 @@
+IN REGS Dashboard Refinement Update
+
+Objective:
+Make the dashboard instantly understandable to Marines and leadership while ensuring readiness statistics are logically accurate.
+
+PRIMARY GOAL:
+A user should be able to open the dashboard and understand unit readiness within 5 seconds.
+
+⸻
+
+1. FIX CATEGORY LOGIC
+
+⸻
+
+Current issue:
+
+In Regs = 0
+Watch Zone = 1
+Out of Regs = 0
+
+This is misleading because Watch Zone Marines are still passing and still within standards.
+
+Update logic:
+
+Passing/In Regs = ALL Marines currently meeting standards.
+
+Watch Zone = subset of Passing/In Regs.
+
+Example:
+
+1 Marine at 19.3% with a 20% limit:
+
+Pass Rate = 100%
+Passing = 1
+Watch Zone = 1
+Out of Regs = 0
+
+Never display a scenario where:
+Pass Rate = 100%
+In Regs = 0
+
+because that is logically incorrect.
+
+⸻
+
+2. SIMPLIFY COMMAND DASHBOARD
+
+⸻
+
+Replace unnecessary text with quick-read metrics.
+
+Keep:
+
+* Total Marines
+* Pass Rate
+* Passing
+* Watch Zone
+* Out of Regs
+
+Remove:
+
+* Excessive explanatory text
+* Long readiness descriptions
+* Unnecessary dashboard clutter
+
+Dashboard should feel like a readiness snapshot, not a report.
+
+⸻
+
+3. REDESIGN STATUS HIERARCHY
+
+⸻
+
+Status definitions:
+
+GREEN
+PASSING
+More than 2% below limit
+
+YELLOW
+WATCH ZONE
+Within 2% of limit
+
+RED
+OUT OF REGS
+Exceeds allowable BF
+
+Watch Zone remains compliant but requires attention.
+
+⸻
+
+4. IMPROVE WATCH ZONE CARD
+
+⸻
+
+Current text:
+
+“Closest: 0.7% from limit”
+
+Change to:
+
+WATCH ZONE
+1 Marine
+Closest: 0.7%
+
+Add info tooltip:
+
+“Within 2% of maximum allowable body fat.”
+
+⸻
+
+5. SIMPLIFY AT RISK CARD
+
+⸻
+
+Current:
+
+“Passing but within 1% of BF Limit — immediate attention required”
+
+Replace with:
+
+AT RISK
+1 Marine
+
+Within 1.0% of limit
+
+No paragraphs.
+
+⸻
+
+6. REMOVE UNNECESSARY TEXT
+
+⸻
+
+Replace:
+
+“Aggregate readiness across saved profiles”
+
+With:
+
+“Unit Readiness Snapshot”
+
+or simply:
+
+“Command Dashboard”
+
+Keep wording short and direct throughout the application.
+
+⸻
+
+7. REMOVE LEGEND
+
+⸻
+
+Remove:
+
+Blue = In Regs
+Yellow = Watch Zone
+Red = Out of Regs
+
+Card colors already communicate status.
+
+Recover screen space for useful information.
+
+⸻
+
+8. ADD NEEDS ATTENTION SECTION
+
+⸻
+
+Add a dedicated section:
+
+NEEDS ATTENTION
+
+Display only:
+
+* Watch Zone Marines
+* Out of Regs Marines
+
+Example:
+
+Sgt Dixon
+19.3%
+0.7% from limit
+WATCH ZONE
+
+Leadership cares about names requiring action more than summary statistics.
+
+⸻
+
+9. IMPROVE SAVED PROFILE CARDS
+
+⸻
+
+Display:
+
+* Rank/Name
+* Current BF %
+* Status Badge
+* Last Updated Date
+
+Example:
+
+Sgt Dixon
+19.3%
+WATCH ZONE
+Updated Today
+
+⸻
+
+10. MOBILE FIRST OPTIMIZATION
+
+⸻
+
+Optimize for iPhone first.
+
+Requirements:
+
+* Larger touch targets
+* Reduced scrolling
+* Less text
+* More whitespace
+* No horizontal scrolling
+* Important information visible immediately
+
+Users should not need to read paragraphs or open multiple screens to determine readiness.
+
+⸻
+
+11. FUTURE FEATURES (DO NOT BUILD YET)
+
+⸻
+
+After dashboard refinement is complete, prioritize:
+
+1. Historical body fat tracking
+2. Multi-entry trend history
+3. Needs Attention roster management
+4. CSV unit import
+5. PDF readiness export
+
+Do not add additional graphs or complex analytics until these core features are completed.
+
+⸻
+
+FINAL EXPERIENCE
+
+Marine enters measurements.
+
+Immediately sees:
+
+PASSING / WATCH ZONE / OUT OF REGS
+
+Body Fat %
+Maximum Allowed %
+Buffer from Limit
+Tape Required
+
+Command Dashboard immediately shows:
+
+Pass Rate
+Passing Marines
+Watch Zone Marines
+Out of Regs Marines
+Needs Attention List
+
+Maintain current USMC styling and MCBUL 6110 compliance while simplifying the user experience.
