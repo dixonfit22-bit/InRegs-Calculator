@@ -115,6 +115,67 @@ export const TAPE_METHOD = {
 } as const;
 
 // =============================================================================
+// WAIST-TO-HEIGHT RATIO (WHtR) SCREENING TABLE
+// Source: fitness.marines.mil — MARADMIN 073/26
+// Standard: WHtR < 0.52 (max waist = floor(height × 0.52, 0.5"))
+// Same table applies to both male and female Marines.
+// Heights in 0.5" increments; key is height × 2 (integer) to avoid float keys.
+// If waist ≤ maxWaist → passes WHtR screening; otherwise tape test required.
+// =============================================================================
+
+export const WHTR_MAX_WAIST: Record<number, number> = {
+  // key = height_inches × 2  (e.g. 112 = 56.0", 113 = 56.5")
+  96:  24.5,  97:  25.0,
+  98:  25.0,  99:  25.5,
+  100: 25.5,  101: 26.0,
+  102: 26.5,  103: 26.5,
+  104: 27.0,  105: 27.0,
+  106: 27.5,  107: 27.5,
+  108: 28.0,  109: 28.0,
+  110: 28.5,  111: 28.5,
+  112: 29.0,  113: 29.0,
+  114: 29.5,  115: 29.5,
+  116: 30.0,  117: 30.0,
+  118: 30.5,  119: 30.5,
+  120: 31.0,  121: 31.0,
+  122: 31.5,  123: 31.5,
+  124: 32.0,  125: 32.0,
+  126: 32.5,  127: 33.0,
+  128: 33.0,  129: 33.5,
+  130: 33.5,  131: 34.0,
+  132: 34.5,  133: 34.5,
+  134: 34.5,  135: 35.0,
+  136: 35.0,  137: 35.5,
+  138: 35.5,  139: 36.0,
+  140: 36.0,  141: 36.5,
+  142: 36.5,  143: 37.0,
+  144: 37.0,  145: 37.5,
+  146: 37.5,  147: 38.0,
+  148: 38.0,  149: 38.5,
+  150: 38.5,  151: 39.0,
+  152: 39.5,  153: 39.5,
+  154: 40.0,  155: 40.0,
+  156: 40.5,  157: 40.5,
+  158: 41.0,  159: 41.0,
+  160: 41.5,  161: 41.5,
+  162: 42.0,  163: 42.0,
+  164: 42.5,  165: 42.5,
+  166: 43.0,  167: 43.0,
+  168: 43.5,  169: 43.5,
+  170: 44.0,  171: 44.0,
+  172: 44.5,  173: 44.5,
+  174: 45.0,  175: 45.0,
+};
+
+/** Returns the max allowable waist (inches) for the WHtR screen, or null if height out of range. */
+export function getWHtRMaxWaist(heightInches: number): number | null {
+  const key = Math.round(heightInches * 2);
+  return WHTR_MAX_WAIST[key] ?? null;
+}
+
+export const WHTR_STANDARD = 0.52;
+
+// =============================================================================
 // WATCH ZONE THRESHOLDS (app-defined, not from MCO)
 // =============================================================================
 
