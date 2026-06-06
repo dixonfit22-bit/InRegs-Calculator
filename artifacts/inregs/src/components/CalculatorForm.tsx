@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ResultSection } from "./ResultSection";
+import { LoadProfilePanel } from "./ProfileLoader";
+import { MarineProfile, setActiveProfileId as persistActiveId } from "@/lib/storage";
 
 const INITIAL_FORM: FormData = {
   sex: "",
@@ -23,8 +25,28 @@ export function CalculatorForm() {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [result, setResult] = useState<RegResult | null>(null);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  const handleLoadProfile = (profile: MarineProfile) => {
+    setForm({
+      sex: profile.sex,
+      age: profile.age,
+      heightInches: profile.heightInches,
+      weightLbs: profile.weightLbs,
+      neckInches: profile.neckInches,
+      waistInches: profile.waistInches,
+      hipInches: profile.hipInches,
+      pftScore: profile.pftScore,
+      cftScore: profile.cftScore,
+    });
+    setActiveProfileId(profile.id);
+    persistActiveId(profile.id);
+    setResult(null);
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleChange = (field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -65,6 +87,7 @@ export function CalculatorForm() {
     setForm(INITIAL_FORM);
     setResult(null);
     setErrors({});
+    setActiveProfileId(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -81,6 +104,9 @@ export function CalculatorForm() {
 
   return (
     <>
+      {/* Profile loader — shown when at least one profile exists */}
+      <LoadProfilePanel onLoad={handleLoadProfile} activeProfileId={activeProfileId} />
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-8">
         <SectionDivider label="Personal Info" />
 
@@ -258,6 +284,8 @@ export function CalculatorForm() {
             pftScore={Number(form.pftScore)}
             cftScore={Number(form.cftScore)}
             onReset={handleReset}
+            activeProfileId={activeProfileId}
+            onProfileSaved={(id) => setActiveProfileId(id)}
           />
         )}
       </div>

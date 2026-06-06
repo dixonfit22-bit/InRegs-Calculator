@@ -7,6 +7,8 @@ import { WATCH_ZONE } from "@/lib/usmcStandards";
 import { FormData } from "@/lib/validation";
 import { ReportModal } from "./ReportModal";
 import { ReadinessPlanner } from "./ReadinessPlanner";
+import { SaveProfileButton } from "./ProfileLoader";
+import { ProgressTracker } from "./ProgressTracker";
 
 // ── What Do I Need? ─────────────────────────────────────────────────────────
 
@@ -161,9 +163,11 @@ interface ResultSectionProps {
   pftScore: number;
   cftScore: number;
   onReset: () => void;
+  activeProfileId: string | null;
+  onProfileSaved: (id: string) => void;
 }
 
-export function ResultSection({ result, inputs, pftScore, cftScore, onReset }: ResultSectionProps) {
+export function ResultSection({ result, inputs, pftScore, cftScore, onReset, activeProfileId, onProfileSaved }: ResultSectionProps) {
   const [reportOpen, setReportOpen] = useState(false);
   const getBannerConfig = () => {
     switch (result.riskLevel) {
@@ -332,6 +336,23 @@ export function ResultSection({ result, inputs, pftScore, cftScore, onReset }: R
 
       {/* Readiness Planner */}
       <ReadinessPlanner result={result} inputs={inputs} />
+
+      {/* Progress Tracker — only shown if profile is saved */}
+      {activeProfileId && (
+        <ProgressTracker
+          profileId={activeProfileId}
+          currentWeight={result.currentWeight}
+          maxAllowableWeight={result.maxAllowableWeight}
+        />
+      )}
+
+      {/* Save / Update profile */}
+      <SaveProfileButton
+        result={result}
+        inputs={inputs}
+        activeProfileId={activeProfileId}
+        onSaved={onProfileSaved}
+      />
 
       <Button
         className="w-full h-12 uppercase tracking-widest text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-2"

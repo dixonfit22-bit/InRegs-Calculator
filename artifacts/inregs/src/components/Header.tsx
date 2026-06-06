@@ -1,4 +1,4 @@
-type Tab = "calculator" | "standards";
+type Tab = "calculator" | "standards" | "dashboard";
 
 interface HeaderProps {
   activeTab: Tab;
@@ -17,28 +17,26 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
 
         {/* Tab bar */}
         <div className="flex gap-0 -mb-px">
-          <button
-            onClick={() => onTabChange("calculator")}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border-t border-l border-r transition-colors ${
-              activeTab === "calculator"
-                ? "border-border bg-background text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-calculator"
-          >
-            Calculator
-          </button>
-          <button
-            onClick={() => onTabChange("standards")}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border-t border-l border-r transition-colors ${
-              activeTab === "standards"
-                ? "border-border bg-background text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-standards"
-          >
-            Standards Table
-          </button>
+          {(
+            [
+              { key: "calculator", label: "Calculator" },
+              { key: "standards",  label: "Standards" },
+              { key: "dashboard",  label: "Dashboard" },
+            ] as const
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => onTabChange(key)}
+              className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border-t border-l border-r transition-colors ${
+                activeTab === key
+                  ? "border-border bg-background text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid={`tab-${key}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
     </header>
