@@ -1,7 +1,155 @@
-import { CheckCircle2, Zap, XCircle, ShieldCheck, TrendingUp } from "lucide-react";
+import { CheckCircle2, Zap, XCircle, ShieldCheck, TrendingUp, ArrowDown, Minus } from "lucide-react";
 import { ResultCard } from "./ResultCard";
 import { Button } from "@/components/ui/button";
 import { RegResult } from "@/lib/marineStandards";
+import { WATCH_ZONE } from "@/lib/usmcStandards";
+
+// ── What Do I Need? ─────────────────────────────────────────────────────────
+
+type RowStatus = "good" | "watch" | "fail";
+
+interface NeedRow {
+  label: string;
+  status: RowStatus;
+  primary: string;
+  sub?: string;
+}
+
+function NeedRowCard({ row }: { row: NeedRow }) {
+  const colors: Record<RowStatus, { border: string; bg: string; badge: string; text: string; icon: React.ReactNode }> = {
+    good:  { border: "border-primary/40",     bg: "bg-primary/5",      badge: "bg-primary text-primary-foreground",         text: "text-primary",     icon: <Minus   className="w-3.5 h-3.5 shrink-0" /> },
+    watch: { border: "border-yellow-500/50",  bg: "bg-yellow-500/10",  badge: "bg-yellow-500 text-white",                   text: "text-yellow-600",  icon: <Zap     className="w-3.5 h-3.5 shrink-0" /> },
+    fail:  { border: "border-destructive/50", bg: "bg-destructive/10", badge: "bg-destructive text-destructive-foreground",  text: "text-destructive", icon: <ArrowDown className="w-3.5 h-3.5 shrink-0" /> },
+  };
+  const c = colors[row.status];
+  return (
+    <div className={`border rounded-md px-4 py-3 flex items-start justify-between gap-3 ${c.border} ${c.bg}`}>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{row.label}</p>
+        <p className={`text-sm font-mono font-bold leading-snug ${c.text}`}>{row.primary}</p>
+        {row.sub && <p className="text-xs text-muted-foreground mt-0.5">{row.sub}</p>}
+      </div>
+      <div className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded whitespace-nowrap ${c.badge}`}>
+        {c.icon}
+        {row.status === "good" ? "Good" : row.status === "watch" ? "Watch" : "Reduce"}
+      </div>
+    </div>
+  );
+}
+
+function WhatDoINeed({ result }: { result: RegResult }) {
+  const rows: NeedRow[] = [];
+
+  // ── Weight ───────────────────────────────────────────────────────────────
+  const weightGap = result.currentWeight - result.maxAllowableWeight;
+  if (weightGap > 0) {
+    rows.push({
+      label: "Weight",
+      status: "fail",
+      primary: `Lose ${weightGap} lb${weightGap !== 1 ? "s" : ""} to meet H/W table`,
+      sub: `${result.currentWeight} lbs / ${result.maxAllowableWeight} lb limit`,
+    });
+  } else if (Math.abs(weightGap) <= WATCH_ZONE.WEIGHT_LBS) {
+    rows.push({
+      label: "Weight",
+      status: "watch",
+      primary: `${Math.abs(weightGap)} lb${Math.abs(weightGap) !== 1 ? "s" : ""} under limit — within watch zone`,
+      sub: `${result.currentWeight} lbs / ${result.maxAllowableWeight} lb limit`,
+    });
+  } else {
+    rows.push({
+      label: "Weight",
+      status: "good",
+      primary: `${Math.abs(weightGap)} lbs under H/W limit`,
+      sub: `${result.currentWeight} lbs / ${result.maxAllowableWeight} lb limit`,
+    });
+  }
+
+  // ── WHtR / Waist ─────────────────────────────────────────────────────────
+  if (result.whtrMaxWaist !== null) {
+    const waistGap = Math.round((result.waistInches - result.whtrMaxWaist) * 10) / 10;
+    if (waistGap > 0) {
+      rows.push({
+        label: "Waist (WHtR ≤ 0.52)",
+        status: "fail",
+        primary: `Reduce waist by ${waistGap}" to pass WHtR screening`,
+        sub: `${result.waistInches}" waist / ${result.whtrMaxWaist}" max at your height`,
+      });
+    } else if (Math.abs(waistGap) <= 0.5) {
+      rows.push({
+        label: "Waist (WHtR ≤ 0.52)",
+        status: "watch",
+        primary: `${Math.abs(waistGap)}" under WHtR waist limit — tight margin`,
+        sub: `${result.waistInches}" waist / ${result.whtrMaxWaist}" max at your height`,
+      });
+    } else {
+      rows.push({
+        label: "Waist (WHtR ≤ 0.52)",
+        status: "good",
+        primary: `${Math.abs(waistGap)}" under WHtR waist limit`,
+        sub: `${result.waistInches}" waist / ${result.whtrMaxWaist}" max at your height`,
+      });
+    }
+  }
+
+  // ── Body Fat ─────────────────────────────────────────────────────────────
+  const bfGap = Math.round((result.estimatedBodyFat - result.effectiveMaxBodyFat) * 10) / 10;
+  if (bfGap > 0) {
+    rows.push({
+      label: "Body Fat",
+      status: "fail",
+      primary: `${bfGap}% over limit — estimated ~${Math.ceil(bfGap / 1.1)}" waist reduction`,
+      sub: `${result.estimatedBodyFat}% est. / ${result.effectiveMaxBodyFat}% limit`,
+    });
+  } else if (Math.abs(bfGap) <= WATCH_ZONE.BODY_FAT_PCT) {
+    rows.push({
+      label: "Body Fat",
+      status: "watch",
+      primary: `${Math.abs(bfGap)}% from limit — within watch zone`,
+      sub: `${result.estimatedBodyFat}% est. / ${result.effectiveMaxBodyFat}% limit`,
+    });
+  } else {
+    rows.push({
+      label: "Body Fat",
+      status: "good",
+      primary: `${Math.abs(bfGap)}% under BF limit`,
+      sub: `${result.estimatedBodyFat}% est. / ${result.effectiveMaxBodyFat}% limit`,
+    });
+  }
+
+  const allGood = rows.every((r) => r.status === "good");
+
+  return (
+    <div>
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
+          <span className="bg-background px-2 text-muted-foreground">What Do I Need?</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {allGood ? (
+          <div className="border border-primary/40 bg-primary/5 rounded-md px-4 py-3 flex items-center gap-3">
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+            <p className="text-sm text-primary font-mono font-bold">No immediate reduction required</p>
+          </div>
+        ) : (
+          rows.map((row) => <NeedRowCard key={row.label} row={row} />)
+        )}
+        {!allGood && (
+          <p className="text-xs text-muted-foreground px-1">
+            Estimates based on tape-method screening. BIA via InBody 770 is the official measurement per MCBul 6110.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 
 interface ResultSectionProps {
   result: RegResult;
@@ -173,22 +321,8 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
         />
       </div>
 
-      {/* Recommendations */}
-      {(result.poundsToLose !== null || result.waistToLose !== null) && (
-        <div className="bg-destructive/10 border border-destructive/50 p-4">
-          <h3 className="text-destructive font-bold text-sm mb-2 uppercase tracking-wide">
-            Recommendations
-          </h3>
-          <ul className="text-sm text-card-foreground space-y-1">
-            {result.poundsToLose !== null && (
-              <li>Weight Reduction Needed: <span className="font-bold">{result.poundsToLose} lbs</span></li>
-            )}
-            {result.waistToLose !== null && (
-              <li>Waist Reduction Est.: <span className="font-bold">{result.waistToLose} inches</span></li>
-            )}
-          </ul>
-        </div>
-      )}
+      {/* What Do I Need? */}
+      <WhatDoINeed result={result} />
 
       <Button
         variant="outline"

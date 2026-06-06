@@ -48,6 +48,8 @@ export interface RegResult {
   whtrRatio: number;
   whtrMaxWaist: number | null;
   whtrPass: boolean;
+  // Raw measurement — used by "What Do I Need?" section
+  waistInches: number;
 }
 
 const WAIST_INCHES_PER_BF_PCT = 0.9;
@@ -181,5 +183,6 @@ export function calculateRegStatus(input: MarineInput): RegResult {
     whtrRatio,
     whtrMaxWaist,
     whtrPass,
+    waistInches,
   };
 }
