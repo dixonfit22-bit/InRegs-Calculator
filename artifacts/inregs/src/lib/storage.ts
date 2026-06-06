@@ -28,7 +28,11 @@ export interface WeightEntry {
 
 export interface MarineProfile {
   id: string;
-  name: string;
+  name: string;       // generated display name: "Rank LastName, FI [MI]"
+  rank?: string;      // e.g. "Sgt", "Cpl", "SSgt"
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
   createdAt: string; // ISO
   updatedAt: string; // ISO
   // Assessment inputs
@@ -195,4 +199,23 @@ export function computeTrend(profile: MarineProfile): TrendDirection | null {
 
 export function newProfileId(): string {
   return crypto.randomUUID();
+}
+
+// ── Display name ──────────────────────────────────────────────────────────────
+
+/**
+ * Generates the standard military display name.
+ * Format: "Rank LastName, FirstInitial [MiddleInitial]"
+ * Examples: "Sgt Dixon, C M" | "Cpl Jones, T"
+ */
+export function buildDisplayName(
+  rank: string,
+  lastName: string,
+  firstName: string,
+  middleName?: string,
+): string {
+  const f = firstName.trim().charAt(0).toUpperCase();
+  const m = middleName?.trim().charAt(0).toUpperCase();
+  const base = `${rank.trim()} ${lastName.trim()}, ${f}`;
+  return m ? `${base} ${m}` : base;
 }

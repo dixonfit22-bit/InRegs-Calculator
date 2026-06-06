@@ -1,20 +1,29 @@
 /**
  * ProfileLoader — save / load Marine profiles (cloud-synced via API).
+ * Names follow the standard military format: Rank LastName, FI [MI]
  */
 import { useState, useEffect } from "react";
 import { User, ChevronDown, ChevronUp, Trash2, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   MarineProfile,
   newProfileId,
   getActiveProfileId,
   setActiveProfileId,
   pushAssessmentHistory,
+  buildDisplayName,
 } from "@/lib/storage";
 import { apiGetProfiles, apiUpsertProfile, apiDeleteProfile } from "@/lib/api";
 import { RegResult } from "@/lib/marineStandards";
 import { FormData } from "@/lib/validation";
+
+// ── USMC Ranks ────────────────────────────────────────────────────────────────
+
+const ENLISTED = ["Pvt", "PFC", "LCpl", "Cpl", "Sgt", "SSgt", "GySgt", "MSgt", "1stSgt", "MGySgt", "SgtMaj", "SgtMajMC"];
+const WARRANT  = ["WO1", "CWO2", "CWO3", "CWO4", "CWO5"];
+const OFFICER  = ["2ndLt", "1stLt", "Capt", "Maj", "LtCol", "Col", "BGen", "MajGen", "LtGen", "Gen"];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,7 +31,7 @@ interface SaveButtonProps {
   result: RegResult;
   inputs: FormData;
   activeProfileId: string | null;
-  onSaved: (id: string) => void;
+  onSaved: (id: string, displayName: string) => void;
 }
 
 interface LoadPanelProps {
@@ -30,73 +39,104 @@ interface LoadPanelProps {
   activeProfileId: string | null;
 }
 
+// ── Name form state ───────────────────────────────────────────────────────────
+
+interface NameFields {
+  rank: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+}
+
+const DEFAULT_NAME: NameFields = { rank: "Cpl", firstName: "", middleName: "", lastName: "" };
+
 // ── Save / Update ─────────────────────────────────────────────────────────────
 
 export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: SaveButtonProps) {
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [name, setName] = useState("");
-  const [showNameInput, setShowNameInput] = useState(false);
+  const [saved, setSaved]             = useState(false);
+  const [saving, setSaving]           = useState(false);
+  const [showForm, setShowForm]       = useState(false);
+  const [fields, setFields]           = useState<NameFields>(DEFAULT_NAME);
 
-  const isUpdate = !!activeProfileId;
+  const isUpdate  = !!activeProfileId;
+  const canSave   = fields.firstName.trim().length > 0 && fields.lastName.trim().length > 0;
+  const preview   = canSave
+    ? buildDisplayName(fields.rank, fields.lastName, fields.firstName, fields.middleName)
+    : "";
 
-  const buildProfile = async (id: string, profileName: string): Promise<MarineProfile> => {
-    const now = new Date().toISOString();
+  const set = (key: keyof NameFields) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setFields((prev) => ({ ...prev, [key]: e.target.value }));
+
+  // ── Build the full MarineProfile object ───────────────────────────────────
+
+  const buildProfile = async (id: string, nameFields: NameFields): Promise<MarineProfile> => {
+    const now  = new Date().toISOString();
+    const displayName = buildDisplayName(nameFields.rank, nameFields.lastName, nameFields.firstName, nameFields.middleName);
+
     let existing: MarineProfile | undefined;
     if (activeProfileId) {
       const profiles = await apiGetProfiles();
       existing = profiles.find((p) => p.id === activeProfileId);
     }
+
     const base: MarineProfile = {
       id,
-      name: profileName,
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-      sex: inputs.sex,
-      age: inputs.age,
+      name:       displayName,
+      rank:       nameFields.rank,
+      firstName:  nameFields.firstName.trim(),
+      middleName: nameFields.middleName.trim() || undefined,
+      lastName:   nameFields.lastName.trim(),
+      createdAt:  existing?.createdAt ?? now,
+      updatedAt:  now,
+      sex:        inputs.sex,
+      age:        inputs.age,
       heightInches: inputs.heightInches,
-      weightLbs: inputs.weightLbs,
-      neckInches: inputs.neckInches,
-      waistInches: inputs.waistInches,
-      hipInches: inputs.hipInches,
-      pftScore: inputs.pftScore,
-      cftScore: inputs.cftScore,
-      riskLevel: result.riskLevel,
-      passFailStatus: result.passFailStatus,
-      estimatedBodyFat: result.estimatedBodyFat,
+      weightLbs:    inputs.weightLbs,
+      neckInches:   inputs.neckInches,
+      waistInches:  inputs.waistInches,
+      hipInches:    inputs.hipInches,
+      pftScore:     inputs.pftScore,
+      cftScore:     inputs.cftScore,
+      riskLevel:    result.riskLevel,
+      passFailStatus:    result.passFailStatus,
+      estimatedBodyFat:  result.estimatedBodyFat,
       effectiveMaxBodyFat: result.effectiveMaxBodyFat,
-      maxAllowableWeight: result.maxAllowableWeight,
+      maxAllowableWeight:  result.maxAllowableWeight,
       overWeightLimit: result.overWeightLimit,
-      tapeRequired: result.tapeRequired,
-      goalWeight: existing?.goalWeight,
-      weeklyGoalLbs: existing?.weeklyGoalLbs,
-      weightLog: existing?.weightLog ?? [],
+      tapeRequired:    result.tapeRequired,
+      goalWeight:      existing?.goalWeight,
+      weeklyGoalLbs:   existing?.weeklyGoalLbs,
+      weightLog:       existing?.weightLog ?? [],
       assessmentHistory: existing?.assessmentHistory ?? [],
     };
+
     return pushAssessmentHistory(base, {
-      date: now,
-      weight: Number(inputs.weightLbs),
-      neckInches: Number(inputs.neckInches),
-      waistInches: Number(inputs.waistInches),
-      hipInches: inputs.hipInches ? Number(inputs.hipInches) : undefined,
-      pftScore: Number(inputs.pftScore),
-      cftScore: Number(inputs.cftScore),
+      date:             now,
+      weight:           Number(inputs.weightLbs),
+      neckInches:       Number(inputs.neckInches),
+      waistInches:      Number(inputs.waistInches),
+      hipInches:        inputs.hipInches ? Number(inputs.hipInches) : undefined,
+      pftScore:         Number(inputs.pftScore),
+      cftScore:         Number(inputs.cftScore),
       estimatedBodyFat: result.estimatedBodyFat,
-      riskLevel: result.riskLevel,
-      passFailStatus: result.passFailStatus,
+      riskLevel:        result.riskLevel,
+      passFailStatus:   result.passFailStatus,
     });
   };
 
-  const doSave = async (profileName: string) => {
+  // ── Save ─────────────────────────────────────────────────────────────────
+
+  const doSave = async () => {
+    if (!canSave) return;
     setSaving(true);
     try {
       const id = activeProfileId ?? newProfileId();
-      const profile = await buildProfile(id, profileName);
+      const profile = await buildProfile(id, fields);
       await apiUpsertProfile(profile);
       setActiveProfileId(id);
-      onSaved(id);
+      onSaved(id, profile.name);
       setSaved(true);
-      setShowNameInput(false);
+      setShowForm(false);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       console.error("Failed to save profile:", err);
@@ -105,16 +145,26 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
     }
   };
 
+  // ── Open form ─────────────────────────────────────────────────────────────
+
   const handleClick = async () => {
     if (isUpdate) {
+      // Pre-fill from existing profile
       const profiles = await apiGetProfiles();
       const existing = profiles.find((p) => p.id === activeProfileId);
-      await doSave(existing?.name ?? autoName());
+      setFields({
+        rank:       existing?.rank       ?? "Cpl",
+        firstName:  existing?.firstName  ?? "",
+        middleName: existing?.middleName ?? "",
+        lastName:   existing?.lastName   ?? "",
+      });
     } else {
-      setName(autoName());
-      setShowNameInput(true);
+      setFields(DEFAULT_NAME);
     }
+    setShowForm(true);
   };
+
+  // ── Saved confirmation ────────────────────────────────────────────────────
 
   if (saved) {
     return (
@@ -125,42 +175,111 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
     );
   }
 
-  if (showNameInput) {
+  // ── Name form ─────────────────────────────────────────────────────────────
+
+  if (showForm) {
     return (
-      <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Profile Name
-        </label>
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-3 border border-border rounded-md px-4 py-4 bg-card">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+          Marine Identification
+        </p>
+
+        {/* Rank */}
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Rank</Label>
+          <select
+            value={fields.rank}
+            onChange={set("rank")}
+            className="h-10 w-full rounded-md border border-input bg-card px-3 font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <optgroup label="Enlisted">
+              {ENLISTED.map((r) => <option key={r} value={r}>{r}</option>)}
+            </optgroup>
+            <optgroup label="Warrant Officer">
+              {WARRANT.map((r) => <option key={r} value={r}>{r}</option>)}
+            </optgroup>
+            <optgroup label="Officer">
+              {OFFICER.map((r) => <option key={r} value={r}>{r}</option>)}
+            </optgroup>
+          </select>
+        </div>
+
+        {/* First / Middle name */}
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+              First Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={fields.firstName}
+              onChange={set("firstName")}
+              placeholder="First"
+              autoFocus
+              className="bg-background font-mono text-sm h-10"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5" style={{ width: "90px" }}>
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+              Middle
+            </Label>
+            <Input
+              value={fields.middleName}
+              onChange={set("middleName")}
+              placeholder="Optional"
+              className="bg-background font-mono text-sm h-10"
+            />
+          </div>
+        </div>
+
+        {/* Last name */}
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+            Last Name <span className="text-destructive">*</span>
+          </Label>
           <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="bg-card font-mono text-sm flex-1"
-            placeholder="e.g. Lance Cpl Smith"
-            autoFocus
+            value={fields.lastName}
+            onChange={set("lastName")}
+            placeholder="Last"
+            className="bg-background font-mono text-sm h-10"
           />
+        </div>
+
+        {/* Live preview */}
+        <div className="border border-border/50 rounded-md px-3 py-2 bg-muted/20 min-h-[40px] flex items-center">
+          {preview ? (
+            <p className="text-sm font-mono font-bold text-foreground">{preview}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground/60 font-mono">
+              Rank LastName, F M
+            </p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2">
           <Button
             type="button"
-            size="sm"
-            className="uppercase tracking-wider text-xs h-10 font-bold shrink-0"
-            disabled={saving}
-            onClick={() => doSave(name.trim() || autoName())}
+            className="flex-1 h-10 uppercase tracking-widest text-xs font-bold"
+            disabled={saving || !canSave}
+            onClick={doSave}
           >
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isUpdate ? "Update Profile" : "Save Profile"}
           </Button>
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="text-xs h-10 shrink-0 text-muted-foreground"
-            onClick={() => setShowNameInput(false)}
+            className="h-10 px-3 text-xs text-muted-foreground"
+            onClick={() => setShowForm(false)}
           >
-            ✕
+            Cancel
           </Button>
         </div>
       </div>
     );
   }
+
+  // ── Default button ────────────────────────────────────────────────────────
 
   return (
     <Button
@@ -179,15 +298,14 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
 // ── Load Panel ────────────────────────────────────────────────────────────────
 
 export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]         = useState(false);
   const [profiles, setProfiles] = useState<MarineProfile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
 
   const refresh = async () => {
     setLoading(true);
     try {
-      const data = await apiGetProfiles();
-      setProfiles(data);
+      setProfiles(await apiGetProfiles());
     } finally {
       setLoading(false);
     }
@@ -207,7 +325,7 @@ export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
   const riskColor = (r: string) =>
     r === "In Regs" ? "text-primary" : r === "Watch Zone" ? "text-yellow-600" : "text-destructive";
 
-  const formatDate = (iso: string) =>
+  const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
@@ -242,7 +360,7 @@ export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
               onClick={() => { onLoad(p); setOpen(false); }}
             >
               <div className="flex flex-col gap-0.5 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-mono font-bold text-foreground truncate">{p.name}</p>
                   {p.id === activeProfileId && (
                     <span className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">
@@ -251,7 +369,7 @@ export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  {formatDate(p.updatedAt)} · {p.weightLbs} lbs ·{" "}
+                  {fmtDate(p.updatedAt)} · {p.weightLbs} lbs ·{" "}
                   <span className={riskColor(p.riskLevel)}>{p.riskLevel}</span>
                 </p>
               </div>
@@ -269,14 +387,4 @@ export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
       )}
     </div>
   );
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function autoName(): string {
-  return new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }

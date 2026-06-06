@@ -164,10 +164,11 @@ interface ResultSectionProps {
   cftScore: number;
   onReset: () => void;
   activeProfileId: string | null;
-  onProfileSaved: (id: string) => void;
+  onProfileSaved: (id: string, displayName?: string) => void;
+  marineName?: string;
 }
 
-export function ResultSection({ result, inputs, pftScore, cftScore, onReset, activeProfileId, onProfileSaved }: ResultSectionProps) {
+export function ResultSection({ result, inputs, pftScore, cftScore, onReset, activeProfileId, onProfileSaved, marineName }: ResultSectionProps) {
   const [reportOpen, setReportOpen] = useState(false);
   const getBannerConfig = () => {
     switch (result.riskLevel) {
@@ -377,6 +378,7 @@ export function ResultSection({ result, inputs, pftScore, cftScore, onReset, act
         onClose={() => setReportOpen(false)}
         result={result}
         inputs={inputs}
+        marineName={marineName}
       />
     </div>
   );

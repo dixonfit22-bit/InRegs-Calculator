@@ -11,6 +11,7 @@ interface ReportModalProps {
   onClose: () => void;
   result: RegResult;
   inputs: FormData;
+  marineName?: string;
 }
 
 const DISCLAIMER =
@@ -61,7 +62,7 @@ function buildNeedItems(result: RegResult): string[] {
   return items;
 }
 
-function buildPlainText(result: RegResult, inputs: FormData, generated: string): string {
+function buildPlainText(result: RegResult, inputs: FormData, generated: string, marineName?: string): string {
   const needItems = buildNeedItems(result);
   const perfNote = result.performanceExempt
     ? `Both PFT & CFT ≥ 285 — BF cap raised to ${result.effectiveMaxBodyFat}% (MARADMIN 066/26)`
@@ -72,6 +73,7 @@ function buildPlainText(result: RegResult, inputs: FormData, generated: string):
   const lines = [
     "INREGS — USMC BCP ASSESSMENT REPORT",
     `Generated: ${generated}`,
+    ...(marineName ? [`Marine:   ${marineName}`] : []),
     "─".repeat(44),
     "",
     "PERSONAL INFO",
@@ -120,7 +122,7 @@ function buildPlainText(result: RegResult, inputs: FormData, generated: string):
   return lines.join("\n");
 }
 
-function printReport(result: RegResult, inputs: FormData, generated: string) {
+function printReport(result: RegResult, inputs: FormData, generated: string, marineName?: string) {
   const needItems = buildNeedItems(result);
   const perfNote = result.performanceExempt
     ? `Both PFT &amp; CFT ≥ 285 — BF cap raised to ${result.effectiveMaxBodyFat}% (MARADMIN 066/26)`
@@ -164,6 +166,7 @@ function printReport(result: RegResult, inputs: FormData, generated: string) {
   <h1>IN REGS</h1>
   <p class="subtitle">USMC BCP Assessment Report</p>
   <p class="generated">Generated: ${generated}</p>
+  ${marineName ? `<p class="generated" style="font-size:12px;font-weight:bold;color:#111;margin-top:-6px;">Marine: ${marineName}</p>` : ""}
   <hr/>
 
   <div class="section">
@@ -238,7 +241,7 @@ function printReport(result: RegResult, inputs: FormData, generated: string) {
   setTimeout(() => { win.print(); }, 400);
 }
 
-export function ReportModal({ open, onClose, result, inputs }: ReportModalProps) {
+export function ReportModal({ open, onClose, result, inputs, marineName }: ReportModalProps) {
   const [copied, setCopied] = useState(false);
   const generated = new Date().toLocaleString("en-US", {
     month: "long", day: "numeric", year: "numeric",
@@ -246,13 +249,13 @@ export function ReportModal({ open, onClose, result, inputs }: ReportModalProps)
   });
 
   const handleCopy = async () => {
-    const text = buildPlainText(result, inputs, generated);
+    const text = buildPlainText(result, inputs, generated, marineName);
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handlePrint = () => printReport(result, inputs, generated);
+  const handlePrint = () => printReport(result, inputs, generated, marineName);
 
   const needItems = buildNeedItems(result);
   const allGood = needItems.every(i => i.includes("— good"));
@@ -316,6 +319,9 @@ export function ReportModal({ open, onClose, result, inputs }: ReportModalProps)
           <div className="pb-4 border-b border-border">
             <h2 className="text-xl font-bold tracking-wider text-primary">IN REGS</h2>
             <p className="text-xs uppercase tracking-widest text-muted-foreground mt-0.5">USMC BCP Assessment Report</p>
+            {marineName && (
+              <p className="text-sm font-bold font-mono text-foreground mt-1">{marineName}</p>
+            )}
             <p className="text-xs text-muted-foreground mt-1">{generated}</p>
           </div>
 

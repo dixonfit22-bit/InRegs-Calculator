@@ -32,6 +32,7 @@ export function CalculatorForm({ profileToLoad, onProfileLoaded }: CalculatorFor
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [result, setResult] = useState<RegResult | null>(null);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+  const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +49,7 @@ export function CalculatorForm({ profileToLoad, onProfileLoaded }: CalculatorFor
       cftScore: profile.cftScore,
     });
     setActiveProfileId(profile.id);
+    setActiveProfileName(profile.name);
     persistActiveId(profile.id);
     setResult(null);
     setErrors({});
@@ -103,6 +105,7 @@ export function CalculatorForm({ profileToLoad, onProfileLoaded }: CalculatorFor
     setResult(null);
     setErrors({});
     setActiveProfileId(null);
+    setActiveProfileName(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -300,7 +303,11 @@ export function CalculatorForm({ profileToLoad, onProfileLoaded }: CalculatorFor
             cftScore={Number(form.cftScore)}
             onReset={handleReset}
             activeProfileId={activeProfileId}
-            onProfileSaved={(id) => setActiveProfileId(id)}
+            marineName={activeProfileName ?? undefined}
+            onProfileSaved={(id, displayName) => {
+              setActiveProfileId(id);
+              if (displayName) setActiveProfileName(displayName);
+            }}
           />
         )}
       </div>
