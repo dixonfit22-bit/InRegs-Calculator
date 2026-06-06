@@ -11,19 +11,9 @@ export type Sex = 'male' | 'female';
 
 // =============================================================================
 // HEIGHT/WEIGHT TABLES
-// Minimum weight is shared male/female.
 // Maximum weight differs by sex.
 // Heights outside 56–82" are clamped to nearest entry.
 // =============================================================================
-
-export const MIN_WEIGHT_TABLE: Record<number, number> = {
-  56: 85,  57: 88,  58: 91,  59: 94,  60: 97,
-  61: 100, 62: 104, 63: 107, 64: 110, 65: 114,
-  66: 117, 67: 121, 68: 125, 69: 128, 70: 132,
-  71: 136, 72: 140, 73: 144, 74: 148, 75: 152,
-  76: 156, 77: 160, 78: 164, 79: 168, 80: 173,
-  81: 177, 82: 182,
-};
 
 export const MALE_MAX_WEIGHT_TABLE: Record<number, number> = {
   56: 122, 57: 127, 58: 131, 59: 136, 60: 141,
@@ -135,13 +125,6 @@ export function getMaxAllowableWeight(sex: Sex, heightInches: number): number {
     Math.min(HEIGHT_RANGE.MAX_INCHES, Math.max(HEIGHT_RANGE.MIN_INCHES, heightInches))
   );
   return table[h] ?? (sex === 'male' ? MALE_MAX_WEIGHT_TABLE[82] : FEMALE_MAX_WEIGHT_TABLE[82]);
-}
-
-export function getMinAllowableWeight(heightInches: number): number {
-  const h = Math.round(
-    Math.min(HEIGHT_RANGE.MAX_INCHES, Math.max(HEIGHT_RANGE.MIN_INCHES, heightInches))
-  );
-  return MIN_WEIGHT_TABLE[h] ?? MIN_WEIGHT_TABLE[82];
 }
 
 export function getMaxAllowableBodyFat(sex: Sex, age: number): number {
