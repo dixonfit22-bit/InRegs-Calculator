@@ -163,10 +163,10 @@ export function CommandDashboard() {
             />
             <StatCard
               icon={<ShieldCheck className="w-3.5 h-3.5" />}
-              label="In Regs"
-              value={profiles.filter((p) => p.riskLevel === "In Regs").length}
-              sub="Clear of all limits"
-              color="primary"
+              label="In Regs (Passing)"
+              value={passed}
+              sub={watchZone > 0 ? `Incl. ${watchZone} in Watch Zone` : "All clear of BF limits"}
+              color={passed === total ? "primary" : "muted"}
             />
           </div>
 
