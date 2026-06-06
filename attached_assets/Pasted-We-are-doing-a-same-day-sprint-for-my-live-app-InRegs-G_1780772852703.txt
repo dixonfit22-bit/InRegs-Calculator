@@ -1,0 +1,62 @@
+We are doing a same-day sprint for my live app InRegs.
+
+Goal: Ship Version 1.2 today without rebuilding the app.
+
+Rules:
+
+* Do not rewrite the whole project.
+* Do not change existing BCP formulas unless there is an obvious bug.
+* Preserve the current mobile-first design, colors, font, report feature, copy button, and print/PDF button.
+* Make small, safe changes.
+* After each major change, verify the app still runs.
+
+Build these updates in order:
+
+1. Fix status clarity:
+    * Add a top-level “OVERALL STATUS” card in the report and result section.
+    * It should clearly say PASS, WATCH ZONE, or FAIL.
+    * Separate supporting indicators:
+        * Height/Weight table status
+        * Body fat status
+        * WHtR status
+        * BCP risk level
+2. Add Readiness Planner:
+    * Section title: READINESS PLANNER
+    * Input: Target Weight
+    * Calculate projected body fat estimate using existing available logic as an estimate.
+    * Calculate projected WHtR status if waist target is available, otherwise explain that WHtR depends on waist measurement.
+    * Show projected status: PASS, WATCH ZONE, or FAIL.
+    * Show pounds needed to:
+        * Meet max weight
+        * Pass WHtR
+        * Leave Watch Zone
+    * Add progress bars for each goal.
+3. Add quick action buttons:
+    * “Meet Max Weight”
+    * “Pass WHtR”
+    * “Leave Watch Zone”
+        When clicked, auto-fill the planner target if possible.
+4. Add disclaimer under planner:
+    “Planner results are estimates and are not official determinations. Verify all results against current Marine Corps orders and directives.”
+5. Mobile polish:
+    * Make sure no cards overflow on iPhone.
+    * Make buttons easy to tap.
+    * Keep spacing clean.
+    * Make standards sections collapsible if they are taking up too much space.
+
+Test case:
+Male, age 29, height 66, weight 180, neck 16, waist 35, PFT 260, CFT 260.
+
+Expected:
+
+* Overall should clearly explain the user is technically passing due to body fat allowance but in Watch Zone.
+* Weight should show 10 lbs over the 170 lb max.
+* WHtR should show fail and need about 0.5 inch waist reduction.
+* Planner should show target weight projections and keep all existing report buttons working.
+
+When finished, summarize:
+
+* Files changed
+* Features added
+* Any assumptions made
+* Remaining issues

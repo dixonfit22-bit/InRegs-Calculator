@@ -6,6 +6,7 @@ import { RegResult } from "@/lib/marineStandards";
 import { WATCH_ZONE } from "@/lib/usmcStandards";
 import { FormData } from "@/lib/validation";
 import { ReportModal } from "./ReportModal";
+import { ReadinessPlanner } from "./ReadinessPlanner";
 
 // ── What Do I Need? ─────────────────────────────────────────────────────────
 
@@ -328,6 +329,9 @@ export function ResultSection({ result, inputs, pftScore, cftScore, onReset }: R
 
       {/* What Do I Need? */}
       <WhatDoINeed result={result} />
+
+      {/* Readiness Planner */}
+      <ReadinessPlanner result={result} />
 
       <Button
         className="w-full h-12 uppercase tracking-widest text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
