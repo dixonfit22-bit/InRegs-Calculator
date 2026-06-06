@@ -331,7 +331,7 @@ export function ResultSection({ result, inputs, pftScore, cftScore, onReset }: R
       <WhatDoINeed result={result} />
 
       {/* Readiness Planner */}
-      <ReadinessPlanner result={result} />
+      <ReadinessPlanner result={result} inputs={inputs} />
 
       <Button
         className="w-full h-12 uppercase tracking-widest text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
