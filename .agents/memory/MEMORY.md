@@ -1,0 +1,1 @@
+- [InRegs cloud sync architecture](inregs-cloud-sync.md) — profiles stored in PostgreSQL via Express API; Vite proxies /api → localhost:8080 in dev; optimistic deletes in CommandDashboard

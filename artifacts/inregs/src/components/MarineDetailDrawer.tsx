@@ -151,10 +151,12 @@ export function MarineDetailDrawer({ profile, onClose, onDelete, onEdit }: Props
 
   return (
     <Drawer open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DrawerContent className="max-h-[90dvh] overflow-y-auto">
+      {/* max-h without overflow-y here — child sections handle scrolling */}
+      <DrawerContent className="max-h-[90dvh] flex flex-col">
         {profile && (
           <>
-            <DrawerHeader className="text-left pb-2">
+            {/* Sticky header */}
+            <DrawerHeader className="text-left pb-2 shrink-0">
               <DrawerTitle className="font-mono text-base font-bold uppercase tracking-widest text-foreground">
                 {profile.name}
               </DrawerTitle>
@@ -164,7 +166,8 @@ export function MarineDetailDrawer({ profile, onClose, onDelete, onEdit }: Props
               </div>
             </DrawerHeader>
 
-            <div className="px-4 pb-2 flex flex-col gap-5">
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto px-4 pb-2 flex flex-col gap-5">
               {/* Measurements */}
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
@@ -210,7 +213,8 @@ export function MarineDetailDrawer({ profile, onClose, onDelete, onEdit }: Props
               <HistoryTable history={profile.assessmentHistory} />
             </div>
 
-            <DrawerFooter className="pt-2">
+            {/* Sticky footer — always visible, never scrolled away */}
+            <DrawerFooter className="pt-2 shrink-0 border-t border-border bg-background">
               <Button
                 type="button"
                 className="w-full h-11 uppercase tracking-widest text-xs font-bold gap-2"
@@ -223,7 +227,7 @@ export function MarineDetailDrawer({ profile, onClose, onDelete, onEdit }: Props
                 type="button"
                 variant="outline"
                 className="w-full h-11 uppercase tracking-widest text-xs font-bold gap-2 border-destructive/40 text-destructive hover:bg-destructive/10"
-                onClick={() => { onDelete(profile.id); onClose(); }}
+                onClick={() => onDelete(profile.id)}
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete Marine

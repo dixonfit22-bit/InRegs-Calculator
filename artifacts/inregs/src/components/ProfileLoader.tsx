@@ -1,21 +1,18 @@
 /**
- * ProfileLoader — save / load Marine profiles.
- * Shown at top of CalculatorForm (load) and in ResultSection (save/update).
+ * ProfileLoader — save / load Marine profiles (cloud-synced via API).
  */
-import { useState } from "react";
-import { User, ChevronDown, ChevronUp, Trash2, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, ChevronDown, ChevronUp, Trash2, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   MarineProfile,
-  loadProfiles,
-  upsertProfile,
-  deleteProfile,
   newProfileId,
   getActiveProfileId,
   setActiveProfileId,
   pushAssessmentHistory,
 } from "@/lib/storage";
+import { apiGetProfiles, apiUpsertProfile, apiDeleteProfile } from "@/lib/api";
 import { RegResult } from "@/lib/marineStandards";
 import { FormData } from "@/lib/validation";
 
@@ -37,16 +34,19 @@ interface LoadPanelProps {
 
 export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: SaveButtonProps) {
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [showNameInput, setShowNameInput] = useState(false);
 
   const isUpdate = !!activeProfileId;
 
-  const buildProfile = (id: string, profileName: string): MarineProfile => {
+  const buildProfile = async (id: string, profileName: string): Promise<MarineProfile> => {
     const now = new Date().toISOString();
-    const existing = activeProfileId
-      ? loadProfiles().find((p) => p.id === activeProfileId)
-      : null;
+    let existing: MarineProfile | undefined;
+    if (activeProfileId) {
+      const profiles = await apiGetProfiles();
+      existing = profiles.find((p) => p.id === activeProfileId);
+    }
     const base: MarineProfile = {
       id,
       name: profileName,
@@ -73,7 +73,6 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
       weightLog: existing?.weightLog ?? [],
       assessmentHistory: existing?.assessmentHistory ?? [],
     };
-    // Push this assessment as a history entry
     return pushAssessmentHistory(base, {
       date: now,
       weight: Number(inputs.weightLbs),
@@ -88,21 +87,29 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
     });
   };
 
-  const doSave = (profileName: string) => {
-    const id = activeProfileId ?? newProfileId();
-    const profile = buildProfile(id, profileName);
-    upsertProfile(profile);
-    setActiveProfileId(id);
-    onSaved(id);
-    setSaved(true);
-    setShowNameInput(false);
-    setTimeout(() => setSaved(false), 3000);
+  const doSave = async (profileName: string) => {
+    setSaving(true);
+    try {
+      const id = activeProfileId ?? newProfileId();
+      const profile = await buildProfile(id, profileName);
+      await apiUpsertProfile(profile);
+      setActiveProfileId(id);
+      onSaved(id);
+      setSaved(true);
+      setShowNameInput(false);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (isUpdate) {
-      const existing = loadProfiles().find((p) => p.id === activeProfileId);
-      doSave(existing?.name ?? autoName());
+      const profiles = await apiGetProfiles();
+      const existing = profiles.find((p) => p.id === activeProfileId);
+      await doSave(existing?.name ?? autoName());
     } else {
       setName(autoName());
       setShowNameInput(true);
@@ -136,9 +143,10 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
             type="button"
             size="sm"
             className="uppercase tracking-wider text-xs h-10 font-bold shrink-0"
+            disabled={saving}
             onClick={() => doSave(name.trim() || autoName())}
           >
-            Save
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
           </Button>
           <Button
             type="button"
@@ -159,9 +167,10 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
       type="button"
       variant="outline"
       className="w-full h-10 uppercase tracking-widest text-xs font-bold border-primary/40 text-primary hover:bg-primary/10 gap-2"
+      disabled={saving}
       onClick={handleClick}
     >
-      <User className="w-3.5 h-3.5" />
+      {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <User className="w-3.5 h-3.5" />}
       {isUpdate ? "Update Profile" : "Save This Assessment"}
     </Button>
   );
@@ -171,18 +180,29 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
 
 export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
   const [open, setOpen] = useState(false);
-  const [profiles, setProfiles] = useState<MarineProfile[]>(() => loadProfiles());
+  const [profiles, setProfiles] = useState<MarineProfile[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const refresh = () => setProfiles(loadProfiles());
-
-  const handleDelete = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    deleteProfile(id);
-    if (id === getActiveProfileId()) setActiveProfileId(null);
-    refresh();
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const data = await apiGetProfiles();
+      setProfiles(data);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (profiles.length === 0) return null;
+  useEffect(() => { refresh(); }, []);
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await apiDeleteProfile(id);
+    if (id === getActiveProfileId()) setActiveProfileId(null);
+    await refresh();
+  };
+
+  if (profiles.length === 0 && !loading) return null;
 
   const riskColor = (r: string) =>
     r === "In Regs" ? "text-primary" : r === "Watch Zone" ? "text-yellow-600" : "text-destructive";
@@ -194,7 +214,7 @@ export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
     <div className="border border-border rounded-md overflow-hidden">
       <button
         type="button"
-        onClick={() => { setOpen((o) => !o); refresh(); }}
+        onClick={() => { setOpen((o) => !o); if (!open) refresh(); }}
         className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-muted/40 transition-colors"
       >
         <div className="flex items-center gap-2">
@@ -202,6 +222,7 @@ export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Saved Profiles ({profiles.length})
           </span>
+          {loading && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
         </div>
         {open ? (
           <ChevronUp className="w-4 h-4 text-muted-foreground" />

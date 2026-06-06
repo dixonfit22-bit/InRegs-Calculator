@@ -2,9 +2,10 @@
  * CommandDashboard — Aggregate readiness view across all saved profiles.
  */
 import { useState, useEffect } from "react";
-import { Users, ShieldCheck, Zap, Scale, Activity, RefreshCw, Search } from "lucide-react";
+import { Users, ShieldCheck, Zap, Scale, Activity, RefreshCw, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { MarineProfile, loadProfiles, deleteProfile, computeTrend } from "@/lib/storage";
+import { MarineProfile, computeTrend } from "@/lib/storage";
+import { apiGetProfiles, apiDeleteProfile } from "@/lib/api";
 import { MarineDetailDrawer } from "./MarineDetailDrawer";
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
@@ -93,10 +94,19 @@ interface CommandDashboardProps {
 
 export function CommandDashboard({ onEdit }: CommandDashboardProps) {
   const [profiles, setProfiles] = useState<MarineProfile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<MarineProfile | null>(null);
 
-  const refresh = () => setProfiles(loadProfiles());
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const data = await apiGetProfiles();
+      setProfiles(data);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => { refresh(); }, []);
 
@@ -136,10 +146,16 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
       );
     });
 
-  const handleDelete = (id: string) => {
-    deleteProfile(id);
+  const handleDelete = async (id: string) => {
+    // Optimistic: remove from local state immediately so UI updates at once
+    setProfiles((prev) => prev.filter((p) => p.id !== id));
     setSelected(null);
-    refresh();
+    try {
+      await apiDeleteProfile(id);
+    } catch {
+      // If the server call failed, re-sync from source of truth
+      await refresh();
+    }
   };
 
   const handleEdit = (profile: MarineProfile) => {
@@ -164,7 +180,11 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
         </button>
       </div>
 
-      {total === 0 ? (
+      {loading && profiles.length === 0 ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : total === 0 ? (
         <EmptyState />
       ) : (
         <>
