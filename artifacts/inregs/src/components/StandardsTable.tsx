@@ -1,8 +1,48 @@
-import { MALE_MAX_WEIGHT_TABLE, FEMALE_MAX_WEIGHT_TABLE, MALE_BF_STANDARDS, FEMALE_BF_STANDARDS } from "@/lib/usmcStandards";
+import { useState, useRef, useEffect } from "react";
+import { MALE_MAX_WEIGHT_TABLE, FEMALE_MAX_WEIGHT_TABLE, MALE_BF_STANDARDS, FEMALE_BF_STANDARDS, HEIGHT_RANGE } from "@/lib/usmcStandards";
 
 const HEIGHTS = Array.from({ length: 27 }, (_, i) => i + 56); // 56–82
 
 export function StandardsTable() {
+  const [heightInput, setHeightInput] = useState("");
+  const [ageInput, setAgeInput] = useState("");
+
+  const parsedHeight = parseInt(heightInput, 10);
+  const parsedAge = parseInt(ageInput, 10);
+
+  const highlightedHeight =
+    !isNaN(parsedHeight) && parsedHeight >= HEIGHT_RANGE.MIN_INCHES && parsedHeight <= HEIGHT_RANGE.MAX_INCHES
+      ? parsedHeight
+      : null;
+
+  const highlightedBFIndex = !isNaN(parsedAge) && parsedAge >= 17
+    ? MALE_BF_STANDARDS.findIndex((b) => parsedAge <= b.maxAge)
+    : null;
+
+  // Refs for highlighted rows
+  const heightRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const bfRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Scroll highlighted height row into view
+  useEffect(() => {
+    if (highlightedHeight !== null) {
+      heightRowRefs.current[highlightedHeight]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [highlightedHeight]);
+
+  // Scroll highlighted BF row into view
+  useEffect(() => {
+    if (highlightedBFIndex !== null && highlightedBFIndex >= 0) {
+      bfRowRefs.current[highlightedBFIndex]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [highlightedBFIndex]);
+
   return (
     <div className="flex flex-col gap-8 pb-8">
 
@@ -13,9 +53,32 @@ export function StandardsTable() {
           Maximum allowable weight (lbs) by height. Marines exceeding their max weight are subject to body composition evaluation.
         </p>
 
-        <div className="border border-border overflow-hidden">
+        {/* Height lookup input */}
+        <div className="flex items-center gap-3 mb-3">
+          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+            Jump to height:
+          </label>
+          <div className="relative flex items-center">
+            <input
+              type="number"
+              min={56}
+              max={82}
+              placeholder="e.g. 70"
+              value={heightInput}
+              onChange={(e) => setHeightInput(e.target.value)}
+              className="w-24 border border-border rounded-md px-3 py-1.5 text-sm font-mono bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              data-testid="input-height-lookup"
+            />
+            <span className="ml-2 text-xs text-muted-foreground">in</span>
+          </div>
+          {highlightedHeight === null && heightInput !== "" && (
+            <span className="text-xs text-destructive">56–82 in only</span>
+          )}
+        </div>
+
+        <div className="border border-border overflow-hidden rounded-md">
           {/* Header row */}
-          <div className="grid grid-cols-3 bg-card border-b border-border">
+          <div className="grid grid-cols-3 bg-muted border-b border-border">
             <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground text-center">
               Height (in)
             </div>
@@ -28,25 +91,34 @@ export function StandardsTable() {
           </div>
 
           {/* Data rows */}
-          {HEIGHTS.map((h, i) => (
-            <div
-              key={h}
-              className={`grid grid-cols-3 border-b border-border/50 last:border-b-0 ${
-                i % 2 === 0 ? "bg-background" : "bg-card/30"
-              }`}
-              data-testid={`row-height-${h}`}
-            >
-              <div className="px-3 py-2 text-sm font-mono text-center text-foreground">
-                {h}"
+          {HEIGHTS.map((h, i) => {
+            const isHighlighted = h === highlightedHeight;
+            return (
+              <div
+                key={h}
+                ref={(el) => { heightRowRefs.current[h] = el; }}
+                className={`grid grid-cols-3 border-b border-border/50 last:border-b-0 transition-colors duration-300 ${
+                  isHighlighted
+                    ? "bg-primary text-primary-foreground"
+                    : i % 2 === 0
+                    ? "bg-card"
+                    : "bg-muted/30"
+                }`}
+                data-testid={`row-height-${h}`}
+              >
+                <div className={`px-3 py-2.5 text-sm font-mono font-bold text-center flex items-center justify-center gap-1.5 ${isHighlighted ? "text-primary-foreground" : "text-foreground"}`}>
+                  {h}"
+                  {isHighlighted && <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">← your height</span>}
+                </div>
+                <div className={`px-3 py-2.5 text-sm font-mono font-bold text-center border-l ${isHighlighted ? "border-primary-foreground/20 text-primary-foreground" : "border-border/50 text-primary"}`}>
+                  {MALE_MAX_WEIGHT_TABLE[h]}
+                </div>
+                <div className={`px-3 py-2.5 text-sm font-mono font-bold text-center border-l ${isHighlighted ? "border-primary-foreground/20 text-primary-foreground/80" : "border-border/50 text-primary/70"}`}>
+                  {FEMALE_MAX_WEIGHT_TABLE[h]}
+                </div>
               </div>
-              <div className="px-3 py-2 text-sm font-mono font-bold text-center text-primary border-l border-border/50">
-                {MALE_MAX_WEIGHT_TABLE[h]}
-              </div>
-              <div className="px-3 py-2 text-sm font-mono font-bold text-center text-primary/70 border-l border-border/50">
-                {FEMALE_MAX_WEIGHT_TABLE[h]}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           Source: DoD Height, Weight, and Body Composition Standards — MCBul 6110 (20 Dec 2024)
@@ -60,9 +132,32 @@ export function StandardsTable() {
           Maximum allowable body fat percentage by age group. Female standards reflect the +1% increase effective 1 January 2023.
         </p>
 
-        <div className="border border-border overflow-hidden">
+        {/* Age lookup input */}
+        <div className="flex items-center gap-3 mb-3">
+          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+            Jump to age:
+          </label>
+          <div className="relative flex items-center">
+            <input
+              type="number"
+              min={17}
+              max={99}
+              placeholder="e.g. 28"
+              value={ageInput}
+              onChange={(e) => setAgeInput(e.target.value)}
+              className="w-24 border border-border rounded-md px-3 py-1.5 text-sm font-mono bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              data-testid="input-age-lookup"
+            />
+            <span className="ml-2 text-xs text-muted-foreground">yrs</span>
+          </div>
+          {!isNaN(parsedAge) && parsedAge < 17 && ageInput !== "" && (
+            <span className="text-xs text-destructive">Min age is 17</span>
+          )}
+        </div>
+
+        <div className="border border-border overflow-hidden rounded-md">
           {/* Header row */}
-          <div className="grid grid-cols-3 bg-card border-b border-border">
+          <div className="grid grid-cols-3 bg-muted border-b border-border">
             <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground text-center">
               Age Group
             </div>
@@ -74,7 +169,6 @@ export function StandardsTable() {
             </div>
           </div>
 
-          {/* Age group rows — zip male and female brackets */}
           {MALE_BF_STANDARDS.map((maleBracket, i) => {
             const femaleBracket = FEMALE_BF_STANDARDS[i];
             const label = maleBracket.maxAge === Infinity
@@ -82,22 +176,29 @@ export function StandardsTable() {
               : i === 0
               ? "17–20"
               : `${MALE_BF_STANDARDS[i - 1].maxAge + 1}–${maleBracket.maxAge}`;
+            const isHighlighted = i === highlightedBFIndex;
 
             return (
               <div
                 key={i}
-                className={`grid grid-cols-3 border-b border-border/50 last:border-b-0 ${
-                  i % 2 === 0 ? "bg-background" : "bg-card/30"
+                ref={(el) => { bfRowRefs.current[i] = el; }}
+                className={`grid grid-cols-3 border-b border-border/50 last:border-b-0 transition-colors duration-300 ${
+                  isHighlighted
+                    ? "bg-primary text-primary-foreground"
+                    : i % 2 === 0
+                    ? "bg-card"
+                    : "bg-muted/30"
                 }`}
                 data-testid={`row-bf-age-${i}`}
               >
-                <div className="px-3 py-2 text-sm font-mono text-center text-foreground">
+                <div className={`px-3 py-2.5 text-sm font-mono font-bold text-center flex items-center justify-center gap-1.5 ${isHighlighted ? "text-primary-foreground" : "text-foreground"}`}>
                   {label}
+                  {isHighlighted && <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">← your age</span>}
                 </div>
-                <div className="px-3 py-2 text-sm font-mono font-bold text-center text-primary border-l border-border/50">
+                <div className={`px-3 py-2.5 text-sm font-mono font-bold text-center border-l ${isHighlighted ? "border-primary-foreground/20 text-primary-foreground" : "border-border/50 text-primary"}`}>
                   {maleBracket.maxBF}%
                 </div>
-                <div className="px-3 py-2 text-sm font-mono font-bold text-center text-primary/70 border-l border-border/50">
+                <div className={`px-3 py-2.5 text-sm font-mono font-bold text-center border-l ${isHighlighted ? "border-primary-foreground/20 text-primary-foreground/80" : "border-border/50 text-primary/70"}`}>
                   {femaleBracket.maxBF}%
                 </div>
               </div>
@@ -116,8 +217,8 @@ export function StandardsTable() {
           Per MCBul 6110, para 4.a.(2)(f). The higher of PFT or CFT score is used.
         </p>
 
-        <div className="border border-border overflow-hidden">
-          <div className="grid grid-cols-2 bg-card border-b border-border">
+        <div className="border border-border overflow-hidden rounded-md">
+          <div className="grid grid-cols-2 bg-muted border-b border-border">
             <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
               PFT / CFT Score
             </div>
@@ -125,15 +226,15 @@ export function StandardsTable() {
               Benefit
             </div>
           </div>
-          <div className="grid grid-cols-2 border-b border-border/50 bg-background">
-            <div className="px-3 py-2 text-sm font-mono font-bold text-primary">285</div>
-            <div className="px-3 py-2 text-sm font-mono text-foreground border-l border-border/50">
+          <div className="grid grid-cols-2 border-b border-border/50 bg-card">
+            <div className="px-3 py-2.5 text-sm font-mono font-bold text-primary">285</div>
+            <div className="px-3 py-2.5 text-sm font-mono text-foreground border-l border-border/50">
               MCBCMAP exempt — pass regardless of body fat
             </div>
           </div>
-          <div className="grid grid-cols-2 bg-card/30">
-            <div className="px-3 py-2 text-sm font-mono font-bold text-primary/70">250–284</div>
-            <div className="px-3 py-2 text-sm font-mono text-foreground border-l border-border/50">
+          <div className="grid grid-cols-2 bg-muted/30">
+            <div className="px-3 py-2.5 text-sm font-mono font-bold text-primary/70">250–284</div>
+            <div className="px-3 py-2.5 text-sm font-mono text-foreground border-l border-border/50">
               +1% body fat allowance added to age-group limit
             </div>
           </div>
