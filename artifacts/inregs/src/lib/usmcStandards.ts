@@ -1,7 +1,8 @@
 /**
  * usmcStandards.ts — USMC Height/Weight & Body Composition Standards
  *
- * SOURCE: Height/Weight Standards effective 1 July 2016
+ * SOURCE: MCBul 6110 (20 Dec 2024) — Marine Corps Body Composition and Military Appearance
+ *         Per MCO 6110.3A and DoD Height, Weight, and Body Composition Standards
  *
  * Single source of truth for all numeric standards.
  * To update when new standards are issued, edit only this file.
@@ -13,6 +14,7 @@ export type Sex = 'male' | 'female';
 // HEIGHT/WEIGHT TABLES
 // Maximum weight differs by sex.
 // Heights outside 56–82" are clamped to nearest entry.
+// Source: DoD Height, Weight, and Body Composition Standards (MCBul 6110 Encl 1)
 // =============================================================================
 
 export const MALE_MAX_WEIGHT_TABLE: Record<number, number> = {
@@ -35,17 +37,19 @@ export const FEMALE_MAX_WEIGHT_TABLE: Record<number, number> = {
 
 // =============================================================================
 // BODY FAT STANDARDS BY AGE GROUP
-// Source: Height/Weight Standards effective 1 July 2016
+// Source: Marine Corps Body Composition Standards — MCBul 6110 (20 Dec 2024)
 //
-// Age Group | Males | Females
-// 17–20     |  18%  |  26%
-// 21–25     |  18%  |  26%
-// 26–30     |  19%  |  27%
-// 31–35     |  19%  |  27%
-// 36–40     |  20%  |  28%
-// 41–45     |  20%  |  28%
-// 46–50     |  21%  |  29%
-// 51+       |  21%  |  29%
+// Female standards reflect the +1% increase effective 1 January 2023.
+//
+// Age Group | Male | Female
+//   17–20   |  18% |  27%
+//   21–25   |  18% |  27%
+//   26–30   |  19% |  28%
+//   31–35   |  19% |  28%
+//   36–40   |  20% |  29%
+//   41–45   |  20% |  29%
+//   46–50   |  21% |  30%
+//    51+    |  21% |  30%
 // =============================================================================
 
 export interface BFBracket {
@@ -54,6 +58,7 @@ export interface BFBracket {
 }
 
 export const MALE_BF_STANDARDS: BFBracket[] = [
+  { maxAge: 20, maxBF: 18 },
   { maxAge: 25, maxBF: 18 },
   { maxAge: 30, maxBF: 19 },
   { maxAge: 35, maxBF: 19 },
@@ -64,17 +69,35 @@ export const MALE_BF_STANDARDS: BFBracket[] = [
 ];
 
 export const FEMALE_BF_STANDARDS: BFBracket[] = [
-  { maxAge: 25, maxBF: 26 },
-  { maxAge: 30, maxBF: 27 },
-  { maxAge: 35, maxBF: 27 },
-  { maxAge: 40, maxBF: 28 },
-  { maxAge: 45, maxBF: 28 },
-  { maxAge: 50, maxBF: 29 },
-  { maxAge: Infinity, maxBF: 29 },
+  { maxAge: 20, maxBF: 27 },
+  { maxAge: 25, maxBF: 27 },
+  { maxAge: 30, maxBF: 28 },
+  { maxAge: 35, maxBF: 28 },
+  { maxAge: 40, maxBF: 29 },
+  { maxAge: 45, maxBF: 29 },
+  { maxAge: 50, maxBF: 30 },
+  { maxAge: Infinity, maxBF: 30 },
 ];
 
 // =============================================================================
+// PERFORMANCE EXEMPTIONS / ALLOWANCES
+// Source: MCBul 6110 (20 Dec 2024), para 4.a.(2)(f)
+//
+// A current 285 PFT or CFT score = MCBCMAP exempt (pass regardless of BF).
+// A score of 250–284 PFT or CFT = +1% additional body fat allowance.
+// The higher of PFT or CFT score is used.
+// =============================================================================
+
+export const PERFORMANCE = {
+  EXEMPTION_SCORE: 285,
+  ALLOWANCE_SCORE: 250,
+  ALLOWANCE_BF_PCT: 1,
+} as const;
+
+// =============================================================================
 // DoD CIRCUMFERENCE (TAPE METHOD) FORMULA COEFFICIENTS
+// Circumference method is the initial screening tool.
+// BIA (InBody 770) is required for formal BCP assignment verification.
 // =============================================================================
 
 export const TAPE_METHOD = {
@@ -92,7 +115,7 @@ export const TAPE_METHOD = {
 } as const;
 
 // =============================================================================
-// WATCH ZONE THRESHOLDS (app-defined)
+// WATCH ZONE THRESHOLDS (app-defined, not from MCO)
 // =============================================================================
 
 export const WATCH_ZONE = {

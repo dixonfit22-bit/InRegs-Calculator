@@ -1,4 +1,4 @@
-import { CheckCircle2, Zap, XCircle } from "lucide-react";
+import { CheckCircle2, Zap, XCircle, ShieldCheck, TrendingUp } from "lucide-react";
 import { ResultCard } from "./ResultCard";
 import { Button } from "@/components/ui/button";
 import { RegResult } from "@/lib/marineStandards";
@@ -47,6 +47,40 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
 
   return (
     <div className="flex flex-col gap-6 pt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {/* Performance Exemption Banner */}
+      {result.performanceExempt && (
+        <div
+          className="border-2 border-primary bg-primary/10 p-4 flex items-center gap-3"
+          data-testid="performance-exempt-banner"
+        >
+          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary/70 mb-0.5">
+              MCBCMAP Exempt
+            </p>
+            <p className="text-sm text-primary font-medium">
+              Score of {result.bestFitnessScore} — exempt from Body Composition Program per MCBul 6110
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Performance Allowance Badge */}
+      {result.performanceAllowance && (
+        <div
+          className="border border-primary/40 bg-primary/5 p-3 flex items-center gap-3"
+          data-testid="performance-allowance-banner"
+        >
+          <TrendingUp className="w-4 h-4 text-primary shrink-0" />
+          <p className="text-xs text-primary/80 font-mono">
+            PFT/CFT score of {result.bestFitnessScore} qualifies for +1% body fat allowance
+            (base {result.maxBodyFat}% → effective {result.effectiveMaxBodyFat}%)
+          </p>
+        </div>
+      )}
+
+      {/* Status Banner */}
       <div
         className={`border-2 p-4 flex items-center justify-between ${banner.borderColor} ${banner.bgColor}`}
         data-testid="status-banner"
@@ -68,27 +102,40 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
         </div>
       </div>
 
+      {/* Assessment Summary */}
       <div className="bg-card border border-border p-4 text-sm leading-relaxed text-card-foreground">
         {result.message}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <ResultCard
-          label={`Body Weight / ${result.maxAllowableWeight}`}
-          value={result.currentWeight}
-          unit="lbs"
-          accent={result.overWeightLimit ? "red" : "green"}
-          data-testid="text-weight"
-        />
-        <ResultCard
-          label={`Body Fat Est. / ${result.maxBodyFat}%`}
-          value={result.estimatedBodyFat}
-          unit="%"
-          accent={result.estimatedBodyFat > result.maxBodyFat ? "red" : "green"}
-          data-testid="text-body-fat"
-        />
-      </div>
+      {/* Key Metrics */}
+      {!result.performanceExempt && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <ResultCard
+              label={`Body Weight / ${result.maxAllowableWeight} lb max`}
+              value={result.currentWeight}
+              unit="lbs"
+              accent={result.overWeightLimit ? "red" : "green"}
+              data-testid="text-weight"
+            />
+            <ResultCard
+              label={`Body Fat Est. / ${result.effectiveMaxBodyFat}% limit`}
+              value={result.estimatedBodyFat}
+              unit="%"
+              accent={result.estimatedBodyFat > result.effectiveMaxBodyFat ? "red" : "green"}
+              data-testid="text-body-fat"
+            />
+          </div>
 
+          {/* BIA Verification Note */}
+          <p className="text-xs text-muted-foreground border border-border/50 px-3 py-2 leading-relaxed">
+            Tape method is a screening estimate. Formal BCP assignment requires BIA verification
+            via InBody 770 (IB770) within 7 working days per MCBul 6110.
+          </p>
+        </>
+      )}
+
+      {/* Fitness Scores */}
       <div className="grid grid-cols-2 gap-4">
         <ResultCard
           label="PFT Score / 300"
@@ -102,6 +149,7 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
         />
       </div>
 
+      {/* Recommendations */}
       {(result.poundsToLose !== null || result.waistToLose !== null) && (
         <div className="bg-destructive/10 border border-destructive/50 p-4">
           <h3 className="text-destructive font-bold text-sm mb-2 uppercase tracking-wide">
@@ -109,10 +157,10 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
           </h3>
           <ul className="text-sm text-card-foreground space-y-1">
             {result.poundsToLose !== null && (
-              <li>Weight Reduction Needed: {result.poundsToLose} lbs</li>
+              <li>Weight Reduction Needed: <span className="font-bold">{result.poundsToLose} lbs</span></li>
             )}
             {result.waistToLose !== null && (
-              <li>Waist Reduction Est.: {result.waistToLose} inches</li>
+              <li>Waist Reduction Est.: <span className="font-bold">{result.waistToLose} inches</span></li>
             )}
           </ul>
         </div>
