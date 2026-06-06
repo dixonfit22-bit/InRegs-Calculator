@@ -327,7 +327,7 @@ export function ReportModal({ open, onClose, result, inputs, marineName }: Repor
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl overflow-hidden">
+      <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto p-0 gap-0 sm:rounded-2xl [&>button:last-child]:hidden">
 
         {/* ── Sticky action bar ── */}
         <div
