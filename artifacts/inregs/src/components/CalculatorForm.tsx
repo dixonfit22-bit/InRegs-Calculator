@@ -254,6 +254,7 @@ export function CalculatorForm() {
         {result && (
           <ResultSection
             result={result}
+            inputs={form}
             pftScore={Number(form.pftScore)}
             cftScore={Number(form.cftScore)}
             onReset={handleReset}

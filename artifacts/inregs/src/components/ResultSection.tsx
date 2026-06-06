@@ -1,8 +1,11 @@
-import { CheckCircle2, Zap, XCircle, ShieldCheck, TrendingUp, ArrowDown, Minus } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, Zap, XCircle, ShieldCheck, TrendingUp, ArrowDown, Minus, FileText } from "lucide-react";
 import { ResultCard } from "./ResultCard";
 import { Button } from "@/components/ui/button";
 import { RegResult } from "@/lib/marineStandards";
 import { WATCH_ZONE } from "@/lib/usmcStandards";
+import { FormData } from "@/lib/validation";
+import { ReportModal } from "./ReportModal";
 
 // ── What Do I Need? ─────────────────────────────────────────────────────────
 
@@ -153,12 +156,14 @@ function WhatDoINeed({ result }: { result: RegResult }) {
 
 interface ResultSectionProps {
   result: RegResult;
+  inputs: FormData;
   pftScore: number;
   cftScore: number;
   onReset: () => void;
 }
 
-export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSectionProps) {
+export function ResultSection({ result, inputs, pftScore, cftScore, onReset }: ResultSectionProps) {
+  const [reportOpen, setReportOpen] = useState(false);
   const getBannerConfig = () => {
     switch (result.riskLevel) {
       case "In Regs":
@@ -325,13 +330,29 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
       <WhatDoINeed result={result} />
 
       <Button
+        className="w-full h-12 uppercase tracking-widest text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+        onClick={() => setReportOpen(true)}
+        data-testid="button-generate-report"
+      >
+        <FileText className="w-4 h-4" />
+        Generate Report
+      </Button>
+
+      <Button
         variant="outline"
-        className="w-full mt-4 h-12 uppercase tracking-widest text-sm font-bold bg-transparent border-muted-foreground text-muted-foreground hover:bg-muted"
+        className="w-full h-12 uppercase tracking-widest text-sm font-bold bg-transparent border-muted-foreground text-muted-foreground hover:bg-muted"
         onClick={onReset}
         data-testid="button-reset"
       >
         ← New Assessment
       </Button>
+
+      <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        result={result}
+        inputs={inputs}
+      />
     </div>
   );
 }
