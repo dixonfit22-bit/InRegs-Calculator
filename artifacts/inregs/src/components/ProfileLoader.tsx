@@ -59,7 +59,7 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
   const [fields, setFields]           = useState<NameFields>(DEFAULT_NAME);
 
   const isUpdate  = !!activeProfileId;
-  const canSave   = fields.firstName.trim().length > 0 && fields.lastName.trim().length > 0;
+  const canSave   = fields.firstName.trim().length > 0 && fields.middleName.trim().length > 0 && fields.lastName.trim().length > 0;
   const preview   = canSave
     ? buildDisplayName(fields.rank, fields.lastName, fields.firstName, fields.middleName)
     : "";
@@ -220,12 +220,12 @@ export function SaveProfileButton({ result, inputs, activeProfileId, onSaved }: 
           </div>
           <div className="flex flex-col gap-1.5" style={{ width: "90px" }}>
             <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-              Middle
+              Middle <span className="text-destructive">*</span>
             </Label>
             <Input
               value={fields.middleName}
               onChange={set("middleName")}
-              placeholder="Optional"
+              placeholder="Middle"
               className="bg-background font-mono text-sm h-10"
             />
           </div>
