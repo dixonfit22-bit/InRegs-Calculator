@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, Printer } from "lucide-react";
+import { Copy, Check, Printer, ArrowLeft } from "lucide-react";
 import { RegResult } from "@/lib/marineStandards";
 import { FormData } from "@/lib/validation";
 import { WATCH_ZONE } from "@/lib/usmcStandards";
@@ -272,9 +272,19 @@ export function ReportModal({ open, onClose, result, inputs }: ReportModalProps)
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto p-0 gap-0">
         {/* Action bar */}
-        <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center justify-between gap-2">
-          <DialogHeader className="p-0">
-            <DialogTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+        <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 text-xs uppercase tracking-widest font-bold gap-1.5 text-muted-foreground hover:text-foreground shrink-0 px-2"
+            onClick={onClose}
+            aria-label="Back to app"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back
+          </Button>
+          <DialogHeader className="p-0 flex-1 min-w-0">
+            <DialogTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground truncate">
               Assessment Report
             </DialogTitle>
           </DialogHeader>
