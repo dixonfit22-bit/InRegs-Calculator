@@ -81,17 +81,26 @@ export const FEMALE_BF_STANDARDS: BFBracket[] = [
 
 // =============================================================================
 // PERFORMANCE EXEMPTIONS / ALLOWANCES
-// Source: MCBul 6110 (20 Dec 2024), para 4.a.(2)(f)
+// Source: MARADMIN 066/26 (effective 1 Jan 2026)
 //
-// A current 285 PFT or CFT score = MCBCMAP exempt (pass regardless of BF).
-// A score of 250–284 PFT or CFT = +1% additional body fat allowance.
-// The higher of PFT or CFT score is used.
+// BOTH the most recent PFT and CFT scores must qualify.
+// Using only the higher score is no longer correct under MARADMIN 066/26.
+//
+// 285 on BOTH PFT and CFT → BF cap raised to 26% (male) / 36% (female).
+//   Marines above those caps are processed for BCP regardless of score.
+//   This replaced the old "MCBCMAP exempt" complete-pass rule from MCBul 6110.
+//
+// 250–284 on BOTH PFT and CFT → +1% additional BF allowance above age-group
+//   standard, not to exceed the 26% (male) / 36% (female) absolute cap.
 // =============================================================================
 
 export const PERFORMANCE = {
   EXEMPTION_SCORE: 285,
   ALLOWANCE_SCORE: 250,
   ALLOWANCE_BF_PCT: 1,
+  // Absolute BF caps for 285-BOTH scorers (MARADMIN 066/26)
+  EXEMPTION_CAP_MALE: 26,
+  EXEMPTION_CAP_FEMALE: 36,
 } as const;
 
 // =============================================================================
@@ -116,7 +125,7 @@ export const TAPE_METHOD = {
 
 // =============================================================================
 // WAIST-TO-HEIGHT RATIO (WHtR) SCREENING TABLE
-// Source: fitness.marines.mil — MARADMIN 073/26
+// Source: fitness.marines.mil — MARADMIN 066/26
 // Standard: WHtR < 0.52 (max waist = floor(height × 0.52, 0.5"))
 // Same table applies to both male and female Marines.
 // Heights in 0.5" increments; key is height × 2 (integer) to avoid float keys.

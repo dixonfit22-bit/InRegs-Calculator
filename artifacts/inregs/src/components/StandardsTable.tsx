@@ -309,7 +309,7 @@ export function StandardsTable() {
           })}
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Source: fitness.marines.mil — MARADMIN 073/26 (WHtR &lt; {WHTR_STANDARD})
+          Source: fitness.marines.mil — MARADMIN 066/26 (WHtR ≤ {WHTR_STANDARD}; USMC standard vs. 0.55 used by other services)
         </p>
       </div>
 
@@ -317,7 +317,7 @@ export function StandardsTable() {
       <div>
         <SectionDivider label="Performance Exemptions & Allowances" />
         <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-          Per MCBul 6110, para 4.a.(2)(f). The higher of PFT or CFT score is used.
+          Per MARADMIN 066/26 (effective 1 Jan 2026). <strong>Both</strong> the most recent PFT and CFT must meet the threshold — the higher score alone no longer qualifies.
         </p>
 
         <div className="border border-border overflow-hidden rounded-md">
@@ -330,15 +330,15 @@ export function StandardsTable() {
             </div>
           </div>
           <div className="grid grid-cols-2 border-b border-border/50 bg-card">
-            <div className="px-3 py-2.5 text-sm font-mono font-bold text-primary">285</div>
+            <div className="px-3 py-2.5 text-sm font-mono font-bold text-primary">285 (both)</div>
             <div className="px-3 py-2.5 text-sm font-mono text-foreground border-l border-border/50">
-              MCBCMAP exempt — pass regardless of body fat
+              BF cap raised to 26% (male) / 36% (female) — must score 285 on <em>both</em> PFT and CFT
             </div>
           </div>
           <div className="grid grid-cols-2 bg-muted/30">
-            <div className="px-3 py-2.5 text-sm font-mono font-bold text-primary/70">250–284</div>
+            <div className="px-3 py-2.5 text-sm font-mono font-bold text-primary/70">250–284 (both)</div>
             <div className="px-3 py-2.5 text-sm font-mono text-foreground border-l border-border/50">
-              +1% body fat allowance added to age-group limit
+              +1% BF allowance above age-group standard, not to exceed 26% (male) / 36% (female) — must score 250+ on <em>both</em>
             </div>
           </div>
         </div>

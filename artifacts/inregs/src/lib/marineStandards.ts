@@ -65,25 +65,44 @@ export function calculateRegStatus(input: MarineInput): RegResult {
   const whtrMaxWaist = getWHtRMaxWaist(heightInches);
   const whtrPass = whtrMaxWaist !== null ? waistInches <= whtrMaxWaist : whtrRatio < 0.52;
 
-  // --- Performance exemption / allowance (MCBul 6110, para 4.a.(2)(f)) ---
-  // Use the higher of PFT or CFT score.
-  const bestFitnessScore = Math.max(pftScore, cftScore);
-  const performanceExempt = bestFitnessScore >= PERFORMANCE.EXEMPTION_SCORE;
-  const performanceAllowance = !performanceExempt && bestFitnessScore >= PERFORMANCE.ALLOWANCE_SCORE;
-  const effectiveMaxBodyFat = baseBF + (performanceAllowance ? PERFORMANCE.ALLOWANCE_BF_PCT : 0);
+  // --- Performance exemption / allowance (MARADMIN 066/26, effective 1 Jan 2026) ---
+  // BOTH the most recent PFT and CFT must qualify — the minimum of the two is used.
+  const minFitnessScore = Math.min(pftScore, cftScore);
+  const bothScoresExempt = minFitnessScore >= PERFORMANCE.EXEMPTION_SCORE;
+  const bothScoresAllowance = !bothScoresExempt && minFitnessScore >= PERFORMANCE.ALLOWANCE_SCORE;
+
+  // Absolute BF cap per MARADMIN 066/26 (26% male / 36% female)
+  const exemptionCap = sex === 'male' ? PERFORMANCE.EXEMPTION_CAP_MALE : PERFORMANCE.EXEMPTION_CAP_FEMALE;
+
+  // 285 BOTH → effective limit raised to absolute cap (not a complete pass)
+  // 250+ BOTH → standard + 1%, capped at absolute cap
+  // Neither → age-group standard
+  let effectiveMaxBodyFat: number;
+  if (bothScoresExempt) {
+    effectiveMaxBodyFat = exemptionCap;
+  } else if (bothScoresAllowance) {
+    effectiveMaxBodyFat = Math.min(baseBF + PERFORMANCE.ALLOWANCE_BF_PCT, exemptionCap);
+  } else {
+    effectiveMaxBodyFat = baseBF;
+  }
+
+  // Keep these for display / backwards compat with result shape
+  const performanceExempt = bothScoresExempt;
+  const performanceAllowance = bothScoresAllowance;
+  const bestFitnessScore = minFitnessScore; // now = lower of the two (both must qualify)
 
   // --- Pass/Fail ---
-  // USMC BCP logic: tape is only administered when over height/weight table.
-  // Fail only if over weight table AND over effective BF standard.
-  // A 285 PFT/CFT score = MCBCMAP exempt (auto-pass regardless of BF).
+  // Under MARADMIN 066/26: WHtR is the first screen.
+  // If WHtR > 0.52, tape/BIA is administered. Fail only if BF exceeds effective limit.
+  // Height/weight table still used to determine if tape is triggered (pending new MCO).
   const overWeightLimit = weightLbs > maxWeight;
   const overBFLimit = estimatedBF > effectiveMaxBodyFat;
-  const tapeRequired = overWeightLimit;
+  const tapeRequired = overWeightLimit || !whtrPass;
   const failedTape = tapeRequired && overBFLimit;
-  const isFailing = failedTape && !performanceExempt;
+  const isFailing = failedTape;
 
   // --- Reduction estimates ---
-  const poundsToLose = overWeightLimit && !performanceExempt ? Math.ceil(weightLbs - maxWeight) : null;
+  const poundsToLose = overWeightLimit ? Math.ceil(weightLbs - maxWeight) : null;
   const waistToLose = isFailing
     ? Math.ceil((estimatedBF - effectiveMaxBodyFat) * WAIST_INCHES_PER_BF_PCT)
     : null;
@@ -91,7 +110,7 @@ export function calculateRegStatus(input: MarineInput): RegResult {
   // --- Watch Zone ---
   const nearWeightLimit = !overWeightLimit && weightLbs >= maxWeight - WATCH_ZONE.WEIGHT_LBS;
   const nearBFLimit = !overBFLimit && estimatedBF >= effectiveMaxBodyFat - WATCH_ZONE.BODY_FAT_PCT;
-  const isWatchZone = !isFailing && !performanceExempt && (nearWeightLimit || nearBFLimit);
+  const isWatchZone = !isFailing && (nearWeightLimit || nearBFLimit);
 
   const riskLevel: RegResult['riskLevel'] = isFailing
     ? 'Out of Regs'
@@ -103,48 +122,44 @@ export function calculateRegStatus(input: MarineInput): RegResult {
 
   // --- Plain-English message ---
   let message = '';
-  const biaNote = 'Note: circumference (tape) results are a screening estimate only. Formal BCP assignment requires BIA verification using the InBody 770.';
+  const biaNote = 'Note: tape results are a screening estimate only. Formal BCP assignment requires BIA verification using the InBody 770 per MCBul 6110.';
 
-  if (performanceExempt) {
+  const perfNote = performanceExempt
+    ? ` Both PFT and CFT scores of ${bestFitnessScore}+ raised your effective BF limit to ${effectiveMaxBodyFat}% per MARADMIN 066/26.`
+    : performanceAllowance
+    ? ` Both PFT and CFT scores of ${bestFitnessScore}+ applied a +1% BF allowance (effective limit: ${effectiveMaxBodyFat}%) per MARADMIN 066/26.`
+    : '';
+
+  if (riskLevel === 'Out of Regs') {
     message =
-      `Your PFT/CFT score of ${bestFitnessScore} meets the 285-point threshold, granting MCBCMAP exemption per MCBul 6110. ` +
-      `You are exempt from Body Composition Program assignment regardless of height/weight or body fat results.`;
-  } else if (riskLevel === 'Out of Regs') {
-    const allowanceNote = performanceAllowance
-      ? ` Your ${bestFitnessScore} PFT/CFT score applied a +1% body fat allowance (effective limit: ${effectiveMaxBodyFat}%).`
-      : '';
-    message =
-      `You are over the weight table limit (${weightLbs} lbs vs. ${maxWeight} lb max) ` +
-      `and your estimated body fat of ${estimatedBF}% exceeds the ${effectiveMaxBodyFat}% effective limit for your age group.${allowanceNote} ` +
-      `Both conditions must be resolved before your next official weigh-in. See recommendations below. ` +
-      biaNote;
+      `Your estimated body fat of ${estimatedBF}% exceeds the ${effectiveMaxBodyFat}% effective limit.${perfNote} ` +
+      (overWeightLimit ? `You are also over the weight table limit (${weightLbs} lbs vs. ${maxWeight} lb max). ` : '') +
+      `See recommendations below. ` + biaNote;
   } else if (riskLevel === 'Watch Zone') {
     const reasons: string[] = [];
     if (nearWeightLimit)
       reasons.push(`weight (${weightLbs} lbs — only ${maxWeight - weightLbs} lbs under the ${maxWeight} lb limit)`);
     if (nearBFLimit)
       reasons.push(`estimated body fat (${estimatedBF}% — only ${(effectiveMaxBodyFat - estimatedBF).toFixed(1)}% under the ${effectiveMaxBodyFat}% limit)`);
-    const allowanceNote = performanceAllowance ? ` Your ${bestFitnessScore} PFT/CFT score applied a +1% body fat allowance.` : '';
     message =
-      `You're in the Watch Zone for your ${reasons.join(' and ')}.${allowanceNote} ` +
-      `You're technically within standards but close to the edge. Now is the time to tighten up before weigh-in. ` +
+      `You're in the Watch Zone for your ${reasons.join(' and ')}.${perfNote} ` +
+      `You're technically within standards but close to the edge. Tighten up before your next evaluation. ` +
       biaNote;
   } else if (overWeightLimit && !failedTape) {
-    const allowanceNote = performanceAllowance
-      ? ` Your ${bestFitnessScore} PFT/CFT score applied a +1% body fat allowance (effective limit: ${effectiveMaxBodyFat}%).`
-      : '';
     message =
       `You are over the height/weight table limit (${weightLbs} lbs vs. ${maxWeight} lb max), ` +
-      `but your estimated body fat of ${estimatedBF}% is within the ${effectiveMaxBodyFat}% effective limit for your age group.${allowanceNote} ` +
+      `but your estimated body fat of ${estimatedBF}% is within the ${effectiveMaxBodyFat}% effective limit.${perfNote} ` +
+      `You pass the tape test. ${biaNote}`;
+  } else if (!whtrPass && !failedTape) {
+    message =
+      `Your WHtR of ${whtrRatio.toFixed(3)} exceeds 0.52, so a tape or BIA evaluation is required. ` +
+      `Your estimated body fat of ${estimatedBF}% is within the ${effectiveMaxBodyFat}% effective limit.${perfNote} ` +
       `You pass the tape test. ${biaNote}`;
   } else {
-    const allowanceNote = performanceAllowance
-      ? ` Your ${bestFitnessScore} PFT/CFT score applied a +1% body fat allowance (effective limit: ${effectiveMaxBodyFat}%).`
-      : '';
     message =
-      `You are within height/weight standards (${weightLbs} lbs vs. ${maxWeight} lb max) ` +
-      `and your estimated body fat of ${estimatedBF}% is within the ${effectiveMaxBodyFat}% limit for your age group.${allowanceNote} ` +
-      `You are currently within USMC BCP standards per MCBul 6110 (20 Dec 2024).`;
+      `You are within height/weight standards (${weightLbs} lbs vs. ${maxWeight} lb max) and WHtR ≤ 0.52.${perfNote} ` +
+      `Your estimated body fat of ${estimatedBF}% is within the ${effectiveMaxBodyFat}% limit for your age group. ` +
+      `You are within USMC BCP standards per MCBul 6110 / MARADMIN 066/26.`;
   }
 
   return {

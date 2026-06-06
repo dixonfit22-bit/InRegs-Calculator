@@ -48,7 +48,7 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
   return (
     <div className="flex flex-col gap-6 pt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-      {/* Performance Exemption Banner */}
+      {/* Performance Score Banner (MARADMIN 066/26) */}
       {result.performanceExempt && (
         <div
           className="border-2 border-primary bg-primary/10 p-4 flex items-center gap-3"
@@ -57,16 +57,15 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
           <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-primary/70 mb-0.5">
-              MCBCMAP Exempt
+              High-Performance BF Cap (MARADMIN 066/26)
             </p>
             <p className="text-sm text-primary font-medium">
-              Score of {result.bestFitnessScore} — exempt from Body Composition Program per MCBul 6110
+              Both PFT &amp; CFT ≥ {result.bestFitnessScore} — BF limit raised to {result.effectiveMaxBodyFat}% (standard raised from {result.maxBodyFat}%)
             </p>
           </div>
         </div>
       )}
 
-      {/* Performance Allowance Badge */}
       {result.performanceAllowance && (
         <div
           className="border border-primary/40 bg-primary/5 p-3 flex items-center gap-3"
@@ -74,8 +73,8 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
         >
           <TrendingUp className="w-4 h-4 text-primary shrink-0" />
           <p className="text-xs text-primary/80 font-mono">
-            PFT/CFT score of {result.bestFitnessScore} qualifies for +1% body fat allowance
-            (base {result.maxBodyFat}% → effective {result.effectiveMaxBodyFat}%)
+            Both PFT &amp; CFT ≥ {result.bestFitnessScore} — +1% BF allowance applied
+            (base {result.maxBodyFat}% → effective {result.effectiveMaxBodyFat}%) per MARADMIN 066/26
           </p>
         </div>
       )}
@@ -108,9 +107,8 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
       </div>
 
       {/* Key Metrics */}
-      {!result.performanceExempt && (
-        <>
-          <div className="grid grid-cols-2 gap-4">
+      <>
+        <div className="grid grid-cols-2 gap-4">
             <ResultCard
               label={`Body Weight / ${result.maxAllowableWeight} lb max`}
               value={result.currentWeight}
@@ -159,8 +157,7 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
             Tape method is a screening estimate. Formal BCP assignment requires BIA verification
             via InBody 770 (IB770) within 7 working days per MCBul 6110.
           </p>
-        </>
-      )}
+      </>
 
       {/* Fitness Scores */}
       <div className="grid grid-cols-2 gap-4">
