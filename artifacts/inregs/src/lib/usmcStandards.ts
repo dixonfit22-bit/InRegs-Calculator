@@ -1,30 +1,63 @@
 /**
  * usmcStandards.ts — USMC Height/Weight & Body Composition Standards
  *
- * SOURCE: MCO 6100.13A W/CH 3 (Marine Corps Body Composition and
- *         Military Appearance Program), effective 01 Jul 2023.
+ * SOURCE: Height/Weight Standards effective 1 July 2016
  *
  * Single source of truth for all numeric standards.
+ * To update when new standards are issued, edit only this file.
  */
 
 export type Sex = 'male' | 'female';
 
-// Height/Weight Tables — MCO 6100.13A Table 6-1
+// =============================================================================
+// HEIGHT/WEIGHT TABLES
+// Minimum weight is shared male/female.
+// Maximum weight differs by sex.
+// Heights outside 56–82" are clamped to nearest entry.
+// =============================================================================
+
+export const MIN_WEIGHT_TABLE: Record<number, number> = {
+  56: 85,  57: 88,  58: 91,  59: 94,  60: 97,
+  61: 100, 62: 104, 63: 107, 64: 110, 65: 114,
+  66: 117, 67: 121, 68: 125, 69: 128, 70: 132,
+  71: 136, 72: 140, 73: 144, 74: 148, 75: 152,
+  76: 156, 77: 160, 78: 164, 79: 168, 80: 173,
+  81: 177, 82: 182,
+};
+
 export const MALE_MAX_WEIGHT_TABLE: Record<number, number> = {
-  58: 131, 59: 133, 60: 136, 61: 139, 62: 141, 63: 144, 64: 148,
-  65: 150, 66: 170, 67: 156, 68: 160, 69: 163, 70: 166, 71: 170,
-  72: 173, 73: 176, 74: 180, 75: 183, 76: 186, 77: 190, 78: 193,
-  79: 196, 80: 200,
+  56: 122, 57: 127, 58: 131, 59: 136, 60: 141,
+  61: 145, 62: 150, 63: 155, 64: 160, 65: 165,
+  66: 170, 67: 175, 68: 180, 69: 186, 70: 191,
+  71: 197, 72: 202, 73: 208, 74: 214, 75: 220,
+  76: 225, 77: 231, 78: 237, 79: 244, 80: 250,
+  81: 256, 82: 263,
 };
 
 export const FEMALE_MAX_WEIGHT_TABLE: Record<number, number> = {
-  58: 119, 59: 121, 60: 124, 61: 127, 62: 130, 63: 133, 64: 137,
-  65: 139, 66: 142, 67: 145, 68: 148, 69: 152, 70: 155, 71: 158,
-  72: 161, 73: 164, 74: 168, 75: 171, 76: 174, 77: 177, 78: 180,
-  79: 183, 80: 186,
+  56: 115, 57: 120, 58: 124, 59: 129, 60: 133,
+  61: 137, 62: 142, 63: 146, 64: 151, 65: 156,
+  66: 161, 67: 166, 68: 171, 69: 176, 70: 181,
+  71: 186, 72: 191, 73: 197, 74: 202, 75: 208,
+  76: 213, 77: 219, 78: 225, 79: 230, 80: 236,
+  81: 242, 82: 248,
 };
 
-// Body Fat Standards — MCO 6100.13A Table 6-2
+// =============================================================================
+// BODY FAT STANDARDS BY AGE GROUP
+// Source: Height/Weight Standards effective 1 July 2016
+//
+// Age Group | Males | Females
+// 17–20     |  18%  |  26%
+// 21–25     |  18%  |  26%
+// 26–30     |  19%  |  27%
+// 31–35     |  19%  |  27%
+// 36–40     |  20%  |  28%
+// 41–45     |  20%  |  28%
+// 46–50     |  21%  |  29%
+// 51+       |  21%  |  29%
+// =============================================================================
+
 export interface BFBracket {
   maxAge: number;
   maxBF: number;
@@ -33,20 +66,27 @@ export interface BFBracket {
 export const MALE_BF_STANDARDS: BFBracket[] = [
   { maxAge: 25, maxBF: 18 },
   { maxAge: 30, maxBF: 19 },
-  { maxAge: 35, maxBF: 20 },
-  { maxAge: 40, maxBF: 21 },
-  { maxAge: Infinity, maxBF: 22 },
+  { maxAge: 35, maxBF: 19 },
+  { maxAge: 40, maxBF: 20 },
+  { maxAge: 45, maxBF: 20 },
+  { maxAge: 50, maxBF: 21 },
+  { maxAge: Infinity, maxBF: 21 },
 ];
 
 export const FEMALE_BF_STANDARDS: BFBracket[] = [
   { maxAge: 25, maxBF: 26 },
   { maxAge: 30, maxBF: 27 },
-  { maxAge: 35, maxBF: 28 },
-  { maxAge: 40, maxBF: 29 },
-  { maxAge: Infinity, maxBF: 30 },
+  { maxAge: 35, maxBF: 27 },
+  { maxAge: 40, maxBF: 28 },
+  { maxAge: 45, maxBF: 28 },
+  { maxAge: 50, maxBF: 29 },
+  { maxAge: Infinity, maxBF: 29 },
 ];
 
-// DoD Circumference (Tape Method) Formula Coefficients
+// =============================================================================
+// DoD CIRCUMFERENCE (TAPE METHOD) FORMULA COEFFICIENTS
+// =============================================================================
+
 export const TAPE_METHOD = {
   male: {
     A: 86.010,
@@ -61,13 +101,19 @@ export const TAPE_METHOD = {
   },
 } as const;
 
-// Watch Zone Thresholds (app-defined, not from MCO)
+// =============================================================================
+// WATCH ZONE THRESHOLDS (app-defined)
+// =============================================================================
+
 export const WATCH_ZONE = {
   WEIGHT_LBS: 10,
   BODY_FAT_PCT: 3,
 } as const;
 
-// Fitness Score Thresholds
+// =============================================================================
+// FITNESS SCORE THRESHOLDS
+// =============================================================================
+
 export const FITNESS_SCORE_THRESHOLDS = {
   FIRST_CLASS: 285,
   SECOND_CLASS: 225,
@@ -75,18 +121,27 @@ export const FITNESS_SCORE_THRESHOLDS = {
 } as const;
 
 export const HEIGHT_RANGE = {
-  MIN_INCHES: 58,
-  MAX_INCHES: 80,
+  MIN_INCHES: 56,
+  MAX_INCHES: 82,
 } as const;
 
-// Accessor Functions
+// =============================================================================
+// ACCESSOR FUNCTIONS
+// =============================================================================
 
 export function getMaxAllowableWeight(sex: Sex, heightInches: number): number {
   const table = sex === 'male' ? MALE_MAX_WEIGHT_TABLE : FEMALE_MAX_WEIGHT_TABLE;
   const h = Math.round(
     Math.min(HEIGHT_RANGE.MAX_INCHES, Math.max(HEIGHT_RANGE.MIN_INCHES, heightInches))
   );
-  return table[h] ?? (sex === 'male' ? MALE_MAX_WEIGHT_TABLE[80] : FEMALE_MAX_WEIGHT_TABLE[80]);
+  return table[h] ?? (sex === 'male' ? MALE_MAX_WEIGHT_TABLE[82] : FEMALE_MAX_WEIGHT_TABLE[82]);
+}
+
+export function getMinAllowableWeight(heightInches: number): number {
+  const h = Math.round(
+    Math.min(HEIGHT_RANGE.MAX_INCHES, Math.max(HEIGHT_RANGE.MIN_INCHES, heightInches))
+  );
+  return MIN_WEIGHT_TABLE[h] ?? MIN_WEIGHT_TABLE[82];
 }
 
 export function getMaxAllowableBodyFat(sex: Sex, age: number): number {
