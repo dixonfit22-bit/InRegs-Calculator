@@ -127,6 +127,33 @@ export function ResultSection({ result, pftScore, cftScore, onReset }: ResultSec
             />
           </div>
 
+          {/* WHtR Ratio */}
+          <div className={`border rounded-md px-4 py-3 flex items-center justify-between ${
+            result.whtrPass
+              ? "border-primary/40 bg-primary/5"
+              : "border-destructive/40 bg-destructive/5"
+          }`}>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+                Waist-to-Height Ratio (WHtR)
+              </p>
+              <p className={`text-2xl font-mono font-bold ${result.whtrPass ? "text-primary" : "text-destructive"}`}>
+                {result.whtrRatio.toFixed(3)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Standard: &lt; 0.52
+                {result.whtrMaxWaist !== null && ` — max waist ${result.whtrMaxWaist}" at your height`}
+              </p>
+            </div>
+            <div className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded ${
+              result.whtrPass
+                ? "bg-primary text-primary-foreground"
+                : "bg-destructive text-destructive-foreground"
+            }`}>
+              {result.whtrPass ? "Pass" : "Fail"}
+            </div>
+          </div>
+
           {/* BIA Verification Note */}
           <p className="text-xs text-muted-foreground border border-border/50 px-3 py-2 leading-relaxed">
             Tape method is a screening estimate. Formal BCP assignment requires BIA verification

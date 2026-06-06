@@ -10,6 +10,7 @@ import {
   getMaxAllowableWeight,
   getMaxAllowableBodyFat,
   estimateBodyFatPct,
+  getWHtRMaxWaist,
   WATCH_ZONE,
   PERFORMANCE,
 } from './usmcStandards';
@@ -44,6 +45,9 @@ export interface RegResult {
   performanceExempt: boolean;
   performanceAllowance: boolean;
   bestFitnessScore: number;
+  whtrRatio: number;
+  whtrMaxWaist: number | null;
+  whtrPass: boolean;
 }
 
 const WAIST_INCHES_PER_BF_PCT = 0.9;
@@ -55,6 +59,11 @@ export function calculateRegStatus(input: MarineInput): RegResult {
   const maxWeight = getMaxAllowableWeight(sex, heightInches);
   const baseBF = getMaxAllowableBodyFat(sex, age);
   const estimatedBF = estimateBodyFatPct(sex, heightInches, neckInches, waistInches, hipInches);
+
+  // --- WHtR screening ---
+  const whtrRatio = Math.round((waistInches / heightInches) * 1000) / 1000;
+  const whtrMaxWaist = getWHtRMaxWaist(heightInches);
+  const whtrPass = whtrMaxWaist !== null ? waistInches <= whtrMaxWaist : whtrRatio < 0.52;
 
   // --- Performance exemption / allowance (MCBul 6110, para 4.a.(2)(f)) ---
   // Use the higher of PFT or CFT score.
@@ -154,5 +163,8 @@ export function calculateRegStatus(input: MarineInput): RegResult {
     performanceExempt,
     performanceAllowance,
     bestFitnessScore,
+    whtrRatio,
+    whtrMaxWaist,
+    whtrPass,
   };
 }
