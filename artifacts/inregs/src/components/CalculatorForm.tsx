@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FormData, validateInputs, ValidationErrors } from "@/lib/validation";
 import { calculateRegStatus, RegResult } from "@/lib/marineStandards";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ResultSection } from "./ResultSection";
 import { LoadProfilePanel } from "./ProfileLoader";
 import { MarineProfile, setActiveProfileId as persistActiveId } from "@/lib/storage";
-import { useEffect } from "react";
 
 const INITIAL_FORM: FormData = {
   sex: "",
