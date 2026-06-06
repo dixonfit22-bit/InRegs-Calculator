@@ -1,0 +1,83 @@
+Do a full visual redesign of the InRegs results page.
+
+Make the app feel:
+- More alive
+- More energetic
+- More motivating
+- More modern
+- More Marine/readiness focused
+
+Keep all calculation logic exactly the same.
+
+Core design changes:
+
+1. Add a large top hero/status banner:
+   - Main title: “MISSION READY”
+   - Status text:
+     - Green: “PASSING STANDARDS”
+     - Yellow: “WATCH ZONE”
+     - Red: “ACTION NEEDED”
+   - Add subtle woodland digital camo texture in the banner only.
+   - Camo opacity should be 5–10%.
+   - Do not put camo behind normal body text.
+
+2. Replace dull gray background with an energetic gradient:
+   - white → light blue
+   - or white → light tactical green
+   - keep it clean and readable.
+
+3. Update fonts:
+   - Use Inter, Sora, Montserrat, or Rajdhani.
+   - Use bold modern headings.
+   - Make key numbers bigger and stronger.
+   - Remove the typewriter-style feel.
+
+4. Redesign cards:
+   - Rounded corners
+   - Soft shadows
+   - More spacing
+   - Stronger color accents
+   - Clean white/light backgrounds
+
+5. Status colors:
+   - PASS = bright green
+   - WATCH = gold/yellow-orange
+   - FAIL = red
+   - Info/action = bright blue
+
+6. Simplify the language:
+   - “What do I need?” → “Your Game Plan”
+   - “Readiness Planner” → “Mission Planner”
+   - “Body Fat Est.” → “Body Fat”
+   - “Waist-to-Height Ratio” → “Waist Check”
+   - “11 lbs under H/W limit” → “11 lbs Below Limit”
+   - “0 inches under WHtR limit” → “At Limit”
+   - “4.5% under BF limit” → “4.5% Below Limit”
+
+7. Add a simple readiness summary:
+   - Weight: PASS
+   - Waist: WATCH
+   - Body Fat: PASS
+   - PFT: 280
+   - CFT: 280
+
+8. Add motivational microcopy:
+   - “Stay ready.”
+   - “Maintain your edge.”
+   - “You’re good today. Stay there.”
+   - “Keep the waist under control.”
+
+9. Hide long regulation explanations behind a collapsible section:
+   Button text: “Show Regulation Details”
+
+10. Mobile-first:
+   - Big readable numbers
+   - Less paragraph text
+   - More visual hierarchy
+   - Faster scanning
+   - No clutter
+
+Important:
+Do not make the app look like a recruiting poster.
+Use camo as a premium accent only.
+The final product should feel like a modern Marine Corps fitness/readiness dashboard.

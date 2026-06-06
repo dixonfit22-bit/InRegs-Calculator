@@ -301,7 +301,7 @@ export function ReadinessPlanner({ result, inputs }: ReadinessPlannerProps) {
         <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
           <span className="bg-background px-2 text-muted-foreground flex items-center gap-1.5">
             <Target className="w-3 h-3" />
-            Readiness Planner
+            Mission Planner
           </span>
         </div>
       </div>
