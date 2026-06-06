@@ -328,55 +328,95 @@ export function LoadProfilePanel({ onLoad, activeProfileId }: LoadPanelProps) {
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
+  const profileWord = profiles.length === 1 ? "saved profile" : "saved profiles";
+
   return (
-    <div className="border border-border rounded-md overflow-hidden">
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: "rgba(255,255,255,0.92)",
+        boxShadow: "0 2px 12px rgba(15,31,60,0.08), 0 1px 3px rgba(15,31,60,0.06)",
+      }}
+    >
       <button
         type="button"
         onClick={() => { setOpen((o) => !o); if (!open) refresh(); }}
-        className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-muted/40 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3.5 transition-colors hover:bg-blue-50/60"
       >
-        <div className="flex items-center gap-2">
-          <User className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Saved Profiles ({profiles.length})
-          </span>
-          {loading && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "linear-gradient(135deg, #1d4ed8, #3b82f6)" }}
+          >
+            <User className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex flex-col items-start gap-0">
+            <span className="text-sm font-bold text-foreground leading-tight">
+              {profiles.length} {profileWord}
+            </span>
+            <span className="text-[10px] uppercase tracking-widest" style={{ color: "#64748b" }}>
+              Tap to load
+            </span>
+          </div>
+          {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />}
         </div>
-        {open ? (
-          <ChevronUp className="w-4 h-4 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        )}
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center"
+          style={{ background: open ? "#eff6ff" : "#f1f5f9" }}
+        >
+          {open ? (
+            <ChevronUp className="w-4 h-4 text-blue-600" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-500" />
+          )}
+        </div>
       </button>
 
       {open && (
-        <div className="flex flex-col divide-y divide-border">
-          {profiles.map((p) => (
+        <div className="flex flex-col" style={{ borderTop: "1px solid #e2e8f0" }}>
+          {profiles.map((p, i) => (
             <div
               key={p.id}
-              className={`flex items-center justify-between px-4 py-3 gap-3 cursor-pointer hover:bg-muted/30 transition-colors ${
-                p.id === activeProfileId ? "bg-primary/5" : ""
-              }`}
+              className="flex items-center justify-between px-4 py-3.5 gap-3 cursor-pointer transition-colors hover:bg-blue-50/40"
+              style={{
+                borderTop: i > 0 ? "1px solid #f1f5f9" : undefined,
+                background: p.id === activeProfileId ? "rgba(37,99,235,0.04)" : undefined,
+              }}
               onClick={() => { onLoad(p); setOpen(false); }}
             >
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-mono font-bold text-foreground truncate">{p.name}</p>
-                  {p.id === activeProfileId && (
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">
-                      Active
-                    </span>
-                  )}
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-[11px] font-bold uppercase"
+                  style={{
+                    background: p.id === activeProfileId ? "#dbeafe" : "#f1f5f9",
+                    color: p.id === activeProfileId ? "#1d4ed8" : "#64748b",
+                  }}
+                >
+                  {p.lastName?.[0] ?? p.name[0]}
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  {fmtDate(p.updatedAt)} · {p.weightLbs} lbs ·{" "}
-                  <span className={riskColor(p.riskLevel)}>{p.riskLevel}</span>
-                </p>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-mono font-bold text-foreground truncate">{p.name}</p>
+                    {p.id === activeProfileId && (
+                      <span
+                        className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0"
+                        style={{ background: "#dbeafe", color: "#1d4ed8" }}
+                      >
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px]" style={{ color: "#64748b" }}>
+                    {fmtDate(p.updatedAt)} · {p.weightLbs} lbs ·{" "}
+                    <span className={riskColor(p.riskLevel)}>{p.riskLevel}</span>
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={(e) => handleDelete(p.id, e)}
-                className="shrink-0 p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                style={{ color: "#94a3b8" }}
                 aria-label="Delete profile"
               >
                 <Trash2 className="w-3.5 h-3.5" />

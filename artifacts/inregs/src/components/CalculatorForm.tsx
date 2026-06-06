@@ -26,6 +26,69 @@ interface CalculatorFormProps {
   onProfileLoaded?: () => void;
 }
 
+// ── Shared card wrapper for each form section ─────────────────────────────────
+
+function SectionCard({
+  label,
+  accentColor,
+  children,
+}: {
+  label: string;
+  accentColor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-2xl flex flex-col gap-4 p-5"
+      style={{
+        background: "rgba(255,255,255,0.92)",
+        boxShadow: "0 2px 12px rgba(15,31,60,0.08), 0 1px 3px rgba(15,31,60,0.06)",
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <div
+          className="w-1 h-5 rounded-full"
+          style={{ background: accentColor }}
+        />
+        <span
+          className="text-[10px] font-bold uppercase tracking-widest"
+          style={{ color: "#64748b" }}
+        >
+          {label}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Labelled field ────────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  error,
+  children,
+  className = "",
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <span
+        className="text-xs font-bold uppercase tracking-widest"
+        style={{ color: "#475569" }}
+      >
+        {label}
+      </span>
+      {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 export function CalculatorForm({ profileToLoad, onProfileLoaded }: CalculatorFormProps = {}) {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -55,7 +118,6 @@ export function CalculatorForm({ profileToLoad, onProfileLoaded }: CalculatorFor
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Load a profile passed in from the Command Dashboard "Edit" action
   useEffect(() => {
     if (profileToLoad) {
       handleLoadProfile(profileToLoad);
@@ -108,192 +170,266 @@ export function CalculatorForm({ profileToLoad, onProfileLoaded }: CalculatorFor
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const SectionDivider = ({ label }: { label: string }) => (
-    <div className="relative my-6">
-      <div className="absolute inset-0 flex items-center">
-        <div className="w-full border-t border-border"></div>
-      </div>
-      <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
-        <span className="bg-background px-2 text-muted-foreground">{label}</span>
-      </div>
-    </div>
-  );
+  const inputCls = "h-12 text-base font-mono bg-white border-slate-200 focus-visible:ring-blue-500 rounded-xl";
 
   return (
     <>
-      {/* Profile loader — shown when at least one profile exists */}
+      {/* ── Hero card ─────────────────────────────────────────────────────── */}
+      <div
+        className="rounded-2xl overflow-hidden relative"
+        style={{
+          background: "linear-gradient(135deg, #0d1f3c 0%, #1a3a6e 55%, #1e5799 100%)",
+          boxShadow: "0 4px 24px rgba(13,31,60,0.28)",
+        }}
+      >
+        {/* Subtle camo texture overlay */}
+        <svg
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full"
+          style={{ opacity: 0.06 }}
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            <pattern id="hcamo" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+              <rect x="0"  y="0"  width="22" height="12" fill="white"/>
+              <rect x="35" y="0"  width="18" height="9"  fill="white"/>
+              <rect x="65" y="4"  width="15" height="8"  fill="white"/>
+              <rect x="8"  y="18" width="20" height="10" fill="white"/>
+              <rect x="45" y="15" width="28" height="11" fill="white"/>
+              <rect x="0"  y="32" width="16" height="12" fill="white"/>
+              <rect x="28" y="28" width="24" height="9"  fill="white"/>
+              <rect x="62" y="26" width="18" height="13" fill="white"/>
+              <rect x="5"  y="46" width="28" height="10" fill="white"/>
+              <rect x="48" y="42" width="20" height="12" fill="white"/>
+              <rect x="0"  y="60" width="18" height="12" fill="white"/>
+              <rect x="32" y="58" width="26" height="10" fill="white"/>
+              <rect x="68" y="55" width="12" height="14" fill="white"/>
+              <rect x="10" y="72" width="22" height="8"  fill="white"/>
+              <rect x="50" y="70" width="18" height="10" fill="white"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hcamo)"/>
+        </svg>
+
+        <div className="relative px-5 py-6 flex flex-col gap-3">
+          {/* Status badge */}
+          <div className="flex items-center gap-2">
+            <div
+              className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5"
+              style={{ background: "rgba(34,197,94,0.2)", color: "#86efac", border: "1px solid rgba(34,197,94,0.25)" }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" />
+              Ready to Calculate
+            </div>
+          </div>
+
+          {/* Title */}
+          <div>
+            <h2
+              className="text-3xl font-bold leading-tight"
+              style={{
+                fontFamily: "'Rajdhani', 'JetBrains Mono', monospace",
+                color: "#ffffff",
+                letterSpacing: "0.04em",
+              }}
+            >
+              BCP Readiness Check
+            </h2>
+            <p
+              className="text-sm mt-1"
+              style={{ color: "rgba(180,210,255,0.85)", fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Know where you stand before weigh-in.
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }} className="pt-2">
+            <p
+              className="text-[10px] font-bold uppercase tracking-widest"
+              style={{ color: "rgba(150,190,255,0.6)" }}
+            >
+              Accurate to MCBul 6110 · MARADMIN 066/26
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Saved profiles panel ───────────────────────────────────────────── */}
       <LoadProfilePanel onLoad={handleLoadProfile} activeProfileId={activeProfileId} />
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-8">
-        <SectionDivider label="Personal Info" />
+      {/* ── Form ──────────────────────────────────────────────────────────── */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2 col-span-2">
-            <Label>Sex</Label>
+        {/* Personal Info */}
+        <SectionCard label="Personal Info" accentColor="#2563eb">
+          {/* Sex */}
+          <Field label="Sex" error={errors.sex}>
             <RadioGroup
               value={form.sex}
               onValueChange={(val) => handleChange("sex", val)}
-              className="flex gap-4"
+              className="flex gap-4 pt-1"
               data-testid="select-sex"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="male" id="male" />
-                <Label htmlFor="male" className="font-normal cursor-pointer">
-                  Male
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="female" id="female" />
-                <Label htmlFor="female" className="font-normal cursor-pointer">
-                  Female
-                </Label>
-              </div>
+              {(["male", "female"] as const).map((val) => (
+                <label
+                  key={val}
+                  className="flex items-center gap-2.5 cursor-pointer"
+                >
+                  <RadioGroupItem value={val} id={val} />
+                  <span className="text-sm font-bold uppercase tracking-wider text-foreground capitalize">
+                    {val}
+                  </span>
+                </label>
+              ))}
             </RadioGroup>
-            {errors.sex && <p className="text-xs text-destructive">{errors.sex}</p>}
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="age">Age</Label>
-            <Input
-              id="age"
-              type="number"
-              inputMode="numeric"
-              placeholder="17-65"
-              value={form.age}
-              onChange={(e) => handleChange("age", e.target.value)}
-              data-testid="input-age"
-              className="bg-card font-mono"
-            />
-            {errors.age && <p className="text-xs text-destructive">{errors.age}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="heightInches">Height (in)</Label>
-            <Input
-              id="heightInches"
-              type="number"
-              inputMode="decimal"
-              placeholder="50-90"
-              value={form.heightInches}
-              onChange={(e) => handleChange("heightInches", e.target.value)}
-              data-testid="input-height"
-              className="bg-card font-mono"
-            />
-            {errors.heightInches && (
-              <p className="text-xs text-destructive">{errors.heightInches}</p>
-            )}
-          </div>
-        </div>
-
-        <SectionDivider label="Body Measurements" />
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="weightLbs">Weight (lbs)</Label>
-            <Input
-              id="weightLbs"
-              type="number"
-              inputMode="decimal"
-              value={form.weightLbs}
-              onChange={(e) => handleChange("weightLbs", e.target.value)}
-              data-testid="input-weight"
-              className="bg-card font-mono"
-            />
-            {errors.weightLbs && <p className="text-xs text-destructive">{errors.weightLbs}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="neckInches">Neck (in)</Label>
-            <Input
-              id="neckInches"
-              type="number"
-              inputMode="decimal"
-              step="0.5"
-              value={form.neckInches}
-              onChange={(e) => handleChange("neckInches", e.target.value)}
-              data-testid="input-neck"
-              className="bg-card font-mono"
-            />
-            {errors.neckInches && <p className="text-xs text-destructive">{errors.neckInches}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="waistInches">Waist at navel (in)</Label>
-            <Input
-              id="waistInches"
-              type="number"
-              inputMode="decimal"
-              step="0.5"
-              value={form.waistInches}
-              onChange={(e) => handleChange("waistInches", e.target.value)}
-              data-testid="input-waist"
-              className="bg-card font-mono"
-            />
-            {errors.waistInches && <p className="text-xs text-destructive">{errors.waistInches}</p>}
-          </div>
-
-          {form.sex === "female" && (
-            <div className="space-y-2">
-              <Label htmlFor="hipInches">Hip widest point (in)</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Age" error={errors.age}>
               <Input
-                id="hipInches"
+                id="age"
+                type="number"
+                inputMode="numeric"
+                placeholder="Enter age"
+                value={form.age}
+                onChange={(e) => handleChange("age", e.target.value)}
+                data-testid="input-age"
+                className={inputCls}
+              />
+            </Field>
+
+            <Field label="Height (in)" error={errors.heightInches}>
+              <Input
+                id="heightInches"
+                type="number"
+                inputMode="decimal"
+                placeholder="Enter height"
+                value={form.heightInches}
+                onChange={(e) => handleChange("heightInches", e.target.value)}
+                data-testid="input-height"
+                className={inputCls}
+              />
+            </Field>
+          </div>
+        </SectionCard>
+
+        {/* Body Measurements */}
+        <SectionCard label="Body Measurements" accentColor="#16a34a">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Weight (lbs)" error={errors.weightLbs}>
+              <Input
+                id="weightLbs"
+                type="number"
+                inputMode="decimal"
+                placeholder="Enter weight"
+                value={form.weightLbs}
+                onChange={(e) => handleChange("weightLbs", e.target.value)}
+                data-testid="input-weight"
+                className={inputCls}
+              />
+            </Field>
+
+            <Field label="Neck (in)" error={errors.neckInches}>
+              <Input
+                id="neckInches"
                 type="number"
                 inputMode="decimal"
                 step="0.5"
-                value={form.hipInches}
-                onChange={(e) => handleChange("hipInches", e.target.value)}
-                data-testid="input-hip"
-                className="bg-card font-mono"
+                placeholder="Enter neck"
+                value={form.neckInches}
+                onChange={(e) => handleChange("neckInches", e.target.value)}
+                data-testid="input-neck"
+                className={inputCls}
               />
-              {errors.hipInches && <p className="text-xs text-destructive">{errors.hipInches}</p>}
-            </div>
-          )}
-        </div>
+            </Field>
 
-        <SectionDivider label="Fitness Scores" />
+            <Field
+              label="Waist at navel (in)"
+              error={errors.waistInches}
+              className={form.sex === "female" ? "" : "col-span-2"}
+            >
+              <Input
+                id="waistInches"
+                type="number"
+                inputMode="decimal"
+                step="0.5"
+                placeholder="Enter waist"
+                value={form.waistInches}
+                onChange={(e) => handleChange("waistInches", e.target.value)}
+                data-testid="input-waist"
+                className={inputCls}
+              />
+            </Field>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="pftScore">PFT Score</Label>
-            <Input
-              id="pftScore"
-              type="number"
-              inputMode="numeric"
-              placeholder="0-300"
-              value={form.pftScore}
-              onChange={(e) => handleChange("pftScore", e.target.value)}
-              data-testid="input-pft"
-              className="bg-card font-mono"
-            />
-            {errors.pftScore && <p className="text-xs text-destructive">{errors.pftScore}</p>}
+            {form.sex === "female" && (
+              <Field label="Hip widest point (in)" error={errors.hipInches}>
+                <Input
+                  id="hipInches"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  placeholder="Enter hip"
+                  value={form.hipInches}
+                  onChange={(e) => handleChange("hipInches", e.target.value)}
+                  data-testid="input-hip"
+                  className={inputCls}
+                />
+              </Field>
+            )}
           </div>
+        </SectionCard>
 
-          <div className="space-y-2">
-            <Label htmlFor="cftScore">CFT Score</Label>
-            <Input
-              id="cftScore"
-              type="number"
-              inputMode="numeric"
-              placeholder="0-300"
-              value={form.cftScore}
-              onChange={(e) => handleChange("cftScore", e.target.value)}
-              data-testid="input-cft"
-              className="bg-card font-mono"
-            />
-            {errors.cftScore && <p className="text-xs text-destructive">{errors.cftScore}</p>}
+        {/* Fitness Scores */}
+        <SectionCard label="Fitness Scores" accentColor="#d97706">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="PFT Score" error={errors.pftScore}>
+              <Input
+                id="pftScore"
+                type="number"
+                inputMode="numeric"
+                placeholder="0 – 300"
+                value={form.pftScore}
+                onChange={(e) => handleChange("pftScore", e.target.value)}
+                data-testid="input-pft"
+                className={inputCls}
+              />
+            </Field>
+
+            <Field label="CFT Score" error={errors.cftScore}>
+              <Input
+                id="cftScore"
+                type="number"
+                inputMode="numeric"
+                placeholder="0 – 300"
+                value={form.cftScore}
+                onChange={(e) => handleChange("cftScore", e.target.value)}
+                data-testid="input-cft"
+                className={inputCls}
+              />
+            </Field>
           </div>
-        </div>
+        </SectionCard>
 
-        <Button
+        {/* Submit */}
+        <button
           type="submit"
-          className="w-full mt-6 h-12 uppercase tracking-widest text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
           data-testid="button-submit"
+          className="w-full h-14 rounded-2xl font-bold uppercase tracking-widest text-sm text-white transition-all duration-150 active:scale-95"
+          style={{
+            background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%)",
+            boxShadow: "0 4px 20px rgba(37,99,235,0.45)",
+            fontFamily: "'Rajdhani', 'JetBrains Mono', monospace",
+            fontSize: "1rem",
+            letterSpacing: "0.12em",
+          }}
         >
           Run Assessment →
-        </Button>
+        </button>
       </form>
 
-      <div ref={resultsRef} className="scroll-mt-6 pb-20">
+      {/* ── Results ───────────────────────────────────────────────────────── */}
+      <div ref={resultsRef} className="scroll-mt-4 pb-20">
         {result && (
           <ResultSection
             result={result}

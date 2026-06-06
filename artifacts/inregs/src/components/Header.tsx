@@ -6,33 +6,71 @@ interface HeaderProps {
 }
 
 export function Header({ activeTab, onTabChange }: HeaderProps) {
-  return (
-    <header className="border-b border-border bg-card">
-      <div className="max-w-xl mx-auto px-4 pt-4 pb-0 flex flex-col gap-1">
-        <div className="flex justify-between items-baseline">
-          <h1 className="text-2xl font-bold tracking-wider text-primary">IN REGS</h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">MCBul 6110 — 20 Dec 2024</p>
-        </div>
-        <p className="text-sm font-medium text-foreground uppercase tracking-wide mb-3">USMC BCP Calculator</p>
+  const tabs = [
+    { key: "calculator" as const, label: "Calculator" },
+    { key: "standards"  as const, label: "Standards"  },
+    { key: "dashboard"  as const, label: "Dashboard"  },
+  ];
 
-        {/* Tab bar */}
-        <div className="flex gap-0 -mb-px">
-          {(
-            [
-              { key: "calculator", label: "Calculator" },
-              { key: "standards",  label: "Standards" },
-              { key: "dashboard",  label: "Dashboard" },
-            ] as const
-          ).map(({ key, label }) => (
+  return (
+    <header style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #112a54 100%)" }}>
+      <div className="max-w-xl mx-auto px-4 pt-4 pb-4 flex flex-col gap-3">
+
+        {/* Brand row */}
+        <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-0">
+            <h1
+              className="text-2xl font-bold tracking-widest"
+              style={{ fontFamily: "'Rajdhani', 'JetBrains Mono', monospace", color: "#ffffff", letterSpacing: "0.1em" }}
+            >
+              IN REGS
+            </h1>
+            <p
+              className="text-[10px] font-bold uppercase tracking-widest"
+              style={{ color: "#7eb3ff", letterSpacing: "0.15em" }}
+            >
+              USMC BCP Calculator
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className="text-[9px] font-bold uppercase tracking-widest"
+              style={{ color: "#4a7fc1" }}
+            >
+              MCBul 6110
+            </span>
+            <span
+              className="text-[9px] font-bold"
+              style={{ color: "#4a7fc1" }}
+            >
+              20 Dec 2024
+            </span>
+          </div>
+        </div>
+
+        {/* Pill tabs */}
+        <div
+          className="flex gap-1 p-1 rounded-xl"
+          style={{ background: "rgba(255,255,255,0.08)" }}
+        >
+          {tabs.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => onTabChange(key)}
-              className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border-t border-l border-r transition-colors ${
-                activeTab === key
-                  ? "border-border bg-background text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
               data-testid={`tab-${key}`}
+              className="flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-150"
+              style={
+                activeTab === key
+                  ? {
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      boxShadow: "0 2px 8px rgba(37,99,235,0.5)",
+                    }
+                  : {
+                      background: "transparent",
+                      color: "rgba(180,210,255,0.7)",
+                    }
+              }
             >
               {label}
             </button>
