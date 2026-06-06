@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "InRegs — USMC BCP Calculator"
+version = "1.0.0"
+id = "artifacts/inregs"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21953
+
+[services.development]
+run = "pnpm --filter @workspace/inregs run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/inregs", "run", "build" ]
+publicDir = "artifacts/inregs/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21953"
+BASE_PATH = "/"
