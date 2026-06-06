@@ -2,11 +2,27 @@
  * CommandDashboard — Aggregate readiness view across all saved profiles.
  */
 import { useState, useEffect } from "react";
-import { Users, ShieldCheck, Zap, Scale, Activity, RefreshCw, Search, Loader2 } from "lucide-react";
+import {
+  Users, ShieldCheck, Zap, Activity, RefreshCw,
+  Search, Loader2, AlertTriangle, Info,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MarineProfile, computeTrend } from "@/lib/storage";
 import { apiGetProfiles, apiDeleteProfile } from "@/lib/api";
 import { MarineDetailDrawer } from "./MarineDetailDrawer";
+
+// ── Tooltip wrapper ────────────────────────────────────────────────────────────
+
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  return (
+    <span className="relative group inline-flex items-center">
+      {children}
+      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-md bg-popover border border-border text-[10px] font-normal normal-case tracking-normal leading-relaxed text-popover-foreground shadow-md px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 text-center">
+        {text}
+      </span>
+    </span>
+  );
+}
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 
@@ -16,12 +32,14 @@ function StatCard({
   value,
   sub,
   color,
+  tooltip,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
   sub?: string;
   color: "primary" | "yellow" | "red" | "muted";
+  tooltip?: string;
 }) {
   const colors = {
     primary: { text: "text-primary",     border: "border-primary/30",     bg: "bg-primary/5"     },
@@ -31,13 +49,18 @@ function StatCard({
   }[color];
 
   return (
-    <div className={`border rounded-md px-4 py-3 flex flex-col gap-1 ${colors.border} ${colors.bg}`}>
-      <div className="flex items-center gap-2">
+    <div className={`border rounded-md px-3 py-3 flex flex-col gap-1 ${colors.border} ${colors.bg}`}>
+      <div className="flex items-center gap-1.5">
         <span className={colors.text}>{icon}</span>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+        <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground leading-tight">{label}</p>
+        {tooltip && (
+          <Tooltip text={tooltip}>
+            <Info className="w-3 h-3 text-muted-foreground/60 cursor-help ml-auto shrink-0" />
+          </Tooltip>
+        )}
       </div>
       <p className={`text-2xl font-mono font-bold ${colors.text}`}>{value}</p>
-      {sub && <p className="text-[10px] text-muted-foreground leading-relaxed">{sub}</p>}
+      {sub && <p className="text-[9px] text-muted-foreground leading-relaxed">{sub}</p>}
     </div>
   );
 }
@@ -61,7 +84,7 @@ function RiskBadge({ risk }: { risk: string }) {
 // ── Trend Pill ────────────────────────────────────────────────────────────────
 
 function TrendPill({ trend }: { trend: "Improving" | "Worsening" | "Stable" | null }) {
-  if (!trend) return null;
+  if (!trend) return <span className="text-[11px] font-bold text-muted-foreground/40">—</span>;
   const cfg = {
     Improving: { label: "↓", color: "text-primary" },
     Worsening: { label: "↑", color: "text-destructive" },
@@ -111,21 +134,26 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
   useEffect(() => { refresh(); }, []);
 
   // ── Aggregate metrics ────────────────────────────────────────────────────────
-  const total       = profiles.length;
-  const passed      = profiles.filter((p) => p.passFailStatus === "PASS").length;
-  const watchZone   = profiles.filter((p) => p.riskLevel === "Watch Zone").length;
-  const tapeReq     = profiles.filter((p) => p.tapeRequired).length;
-  const bfFailed    = profiles.filter((p) => p.passFailStatus === "FAIL").length;
-  const passRate    = total > 0 ? Math.round((passed / total) * 100) : 0;
+  const total     = profiles.length;
+  const inRegs    = profiles.filter((p) => p.riskLevel === "In Regs").length;
+  const watchZone = profiles.filter((p) => p.riskLevel === "Watch Zone").length;
+  const outOfRegs = profiles.filter((p) => p.riskLevel === "Out of Regs").length;
+  const passed    = profiles.filter((p) => p.passFailStatus === "PASS").length;
+  const passRate  = total > 0 ? Math.round((passed / total) * 100) : 0;
 
-  // Watch Zone: find closest marine to BF limit
+  // At Risk: passing but within 1% of BF limit
+  const atRisk = profiles.filter(
+    (p) => p.passFailStatus === "PASS" && p.effectiveMaxBodyFat - p.estimatedBodyFat <= 1
+  ).length;
+
+  // Watch Zone: closest marine to BF limit
   const watchZoneProfiles = profiles.filter((p) => p.riskLevel === "Watch Zone");
   const closestGap = watchZoneProfiles.length > 0
     ? Math.min(...watchZoneProfiles.map((p) => p.effectiveMaxBodyFat - p.estimatedBodyFat))
     : null;
   const watchZoneSub = closestGap !== null
     ? `Closest: ${Math.abs(closestGap).toFixed(1)}% from limit`
-    : "No Marines near limit";
+    : undefined;
 
   const passColor: "primary" | "yellow" | "red" =
     passRate >= 80 ? "primary" : passRate >= 60 ? "yellow" : "red";
@@ -142,28 +170,23 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
       if (!q) return true;
       return (
         p.name.toLowerCase().includes(q) ||
+        p.riskLevel.toLowerCase().includes(q) ||
         formatDate(p.updatedAt).toLowerCase().includes(q)
       );
     });
 
   const handleDelete = async (id: string) => {
-    // Optimistic: remove from local state immediately so UI updates at once
     setProfiles((prev) => prev.filter((p) => p.id !== id));
     setSelected(null);
     try {
       await apiDeleteProfile(id);
     } catch {
-      // If the server call failed, re-sync from source of truth
       await refresh();
     }
   };
 
-  const handleEdit = (profile: MarineProfile) => {
-    onEdit(profile);
-  };
-
   return (
-    <div className="flex flex-col gap-6 pb-20">
+    <div className="flex flex-col gap-5 pb-20">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div>
@@ -188,58 +211,75 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
         <EmptyState />
       ) : (
         <>
-          {/* Metric grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard
-              icon={<Users className="w-3.5 h-3.5" />}
-              label="Total Marines"
-              value={total}
-              color="muted"
-            />
-            <StatCard
-              icon={<ShieldCheck className="w-3.5 h-3.5" />}
-              label="Pass Rate"
-              value={`${passRate}%`}
-              sub={`${passed} of ${total} passing`}
-              color={passColor}
-            />
-            <StatCard
-              icon={<Zap className="w-3.5 h-3.5" />}
-              label="Watch Zone"
-              value={watchZone}
-              sub={watchZoneSub}
-              color={watchZone > 0 ? "yellow" : "muted"}
-            />
-            <StatCard
-              icon={<Activity className="w-3.5 h-3.5" />}
-              label="BF Failures"
-              value={bfFailed}
-              sub={total > 0 ? `${Math.round((bfFailed / total) * 100)}% of unit` : undefined}
-              color={bfFailed > 0 ? "red" : "muted"}
-            />
-            <StatCard
-              icon={<Scale className="w-3.5 h-3.5" />}
-              label="Tape Required"
-              value={tapeReq}
-              sub="Over H/W table — tape required"
-              color={tapeReq > 0 ? "yellow" : "muted"}
-            />
-            <StatCard
-              icon={<ShieldCheck className="w-3.5 h-3.5" />}
-              label="In Regs (Passing)"
-              value={passed}
-              sub="Incl. Watch Zone Marines"
-              color={passed === total ? "primary" : "muted"}
-            />
+          {/* ── Commander Summary ─────────────────────────────────────────── */}
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+              Commander Summary
+            </p>
+
+            {/* Row 1: Total | Pass Rate */}
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <StatCard
+                icon={<Users className="w-3.5 h-3.5" />}
+                label="Total Marines"
+                value={total}
+                color="muted"
+              />
+              <StatCard
+                icon={<ShieldCheck className="w-3.5 h-3.5" />}
+                label="Unit Pass Rate"
+                value={`${passRate}%`}
+                sub={`${passed} of ${total} passing`}
+                color={passColor}
+              />
+            </div>
+
+            {/* Row 2: In Regs | Watch Zone | Out of Regs */}
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <StatCard
+                icon={<ShieldCheck className="w-3 h-3" />}
+                label="In Regs"
+                value={inRegs}
+                sub="> 2% below limit"
+                color={inRegs === total ? "primary" : inRegs > 0 ? "primary" : "muted"}
+              />
+              <StatCard
+                icon={<Zap className="w-3 h-3" />}
+                label="Watch Zone"
+                value={watchZone}
+                sub={watchZoneSub ?? "Within 2% BF"}
+                color={watchZone > 0 ? "yellow" : "muted"}
+                tooltip="Marine is within 2.0% body fat of maximum allowable standard."
+              />
+              <StatCard
+                icon={<Activity className="w-3 h-3" />}
+                label="Out of Regs"
+                value={outOfRegs}
+                sub={outOfRegs > 0 ? "Requires action" : "All clear"}
+                color={outOfRegs > 0 ? "red" : "muted"}
+              />
+            </div>
+
+            {/* Row 3: At Risk */}
+            <div className="grid grid-cols-1 gap-2">
+              <StatCard
+                icon={<AlertTriangle className="w-3.5 h-3.5" />}
+                label="At Risk Marines"
+                value={atRisk}
+                sub="Passing but within 1% of BF limit — immediate attention required"
+                color={atRisk > 0 ? "red" : "muted"}
+                tooltip="Marines who are currently passing but have less than 1% body fat remaining before exceeding their maximum allowable standard."
+              />
+            </div>
           </div>
 
-          {/* Pass rate bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          {/* ── Pass Rate Bar ─────────────────────────────────────────────── */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
               <span>Unit Pass Rate</span>
               <span>{passRate}%</span>
             </div>
-            <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+            <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   passRate >= 80 ? "bg-primary" : passRate >= 60 ? "bg-yellow-500" : "bg-destructive"
@@ -247,22 +287,38 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
                 style={{ width: `${passRate}%` }}
               />
             </div>
+            {/* Readiness breakdown bar */}
+            <div className="flex gap-0 h-1.5 w-full rounded-full overflow-hidden">
+              {inRegs > 0 && (
+                <div className="bg-primary h-full transition-all" style={{ width: `${(inRegs / total) * 100}%` }} />
+              )}
+              {watchZone > 0 && (
+                <div className="bg-yellow-500 h-full transition-all" style={{ width: `${(watchZone / total) * 100}%` }} />
+              )}
+              {outOfRegs > 0 && (
+                <div className="bg-destructive h-full transition-all" style={{ width: `${(outOfRegs / total) * 100}%` }} />
+              )}
+            </div>
+            <div className="flex gap-4 text-[9px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary inline-block" />In Regs</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />Watch Zone</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-destructive inline-block" />Out of Regs</span>
+            </div>
           </div>
 
-          {/* Marine roster */}
-          <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          {/* ── Marine Roster ─────────────────────────────────────────────── */}
+          <div className="flex flex-col gap-2.5">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
               Marine Roster
             </p>
 
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search Marine…"
+                placeholder="Search by name, status, or date…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 bg-card font-mono text-sm h-9"
+                className="pl-8 bg-card font-mono text-xs h-9"
               />
             </div>
 
@@ -270,8 +326,8 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
               <p className="text-xs text-muted-foreground text-center py-4">No Marines match "{search}"</p>
             ) : (
               <div className="border border-border rounded-md overflow-hidden">
-                <div className="grid grid-cols-[1fr_auto_auto] text-[9px] font-bold uppercase tracking-widest text-muted-foreground px-4 py-2 bg-muted/30">
-                  <span>Name / Date</span>
+                <div className="grid grid-cols-[1fr_auto_auto] text-[9px] font-bold uppercase tracking-widest text-muted-foreground px-3 py-2 bg-muted/30">
+                  <span>Name / Status</span>
                   <span className="text-right pr-3">BF%</span>
                   <span className="text-right">Trend</span>
                 </div>
@@ -283,18 +339,18 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
                         key={p.id}
                         type="button"
                         onClick={() => setSelected(p)}
-                        className="grid grid-cols-[1fr_auto_auto] items-center px-4 py-3 gap-2 text-left w-full hover:bg-muted/30 active:bg-muted/50 transition-colors"
+                        className="grid grid-cols-[1fr_auto_auto] items-center px-3 py-3 gap-2 text-left w-full hover:bg-muted/30 active:bg-muted/50 transition-colors"
                       >
                         <div className="min-w-0">
                           <p className="text-xs font-mono font-bold text-foreground truncate">{p.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <p className="text-[10px] text-muted-foreground">
-                              {formatDate(p.updatedAt)} · {p.weightLbs} lbs
-                            </p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <RiskBadge risk={p.riskLevel} />
+                            <p className="text-[9px] text-muted-foreground">
+                              {formatDate(p.updatedAt)}
+                            </p>
                           </div>
                         </div>
-                        <p className="text-xs font-mono text-foreground pr-3">
+                        <p className="text-xs font-mono font-bold text-foreground pr-3">
                           {p.estimatedBodyFat}%
                         </p>
                         <TrendPill trend={trend} />
@@ -308,12 +364,11 @@ export function CommandDashboard({ onEdit }: CommandDashboardProps) {
         </>
       )}
 
-      {/* Marine detail drawer */}
       <MarineDetailDrawer
         profile={selected}
         onClose={() => setSelected(null)}
         onDelete={handleDelete}
-        onEdit={handleEdit}
+        onEdit={(profile) => { onEdit(profile); }}
       />
     </div>
   );

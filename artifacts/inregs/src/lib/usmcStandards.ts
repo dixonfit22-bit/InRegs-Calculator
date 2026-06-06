@@ -190,7 +190,7 @@ export const WHTR_STANDARD = 0.52;
 
 export const WATCH_ZONE = {
   WEIGHT_LBS: 10,
-  BODY_FAT_PCT: 3,
+  BODY_FAT_PCT: 2,
 } as const;
 
 // =============================================================================
