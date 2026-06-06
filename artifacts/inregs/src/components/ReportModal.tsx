@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Copy, Check, Printer, ArrowLeft } from "lucide-react";
 import { RegResult } from "@/lib/marineStandards";
 import { FormData } from "@/lib/validation";
@@ -62,6 +61,16 @@ function buildNeedItems(result: RegResult): string[] {
   return items;
 }
 
+// ── Status helpers ────────────────────────────────────────────────────────────
+
+function statusPalette(riskLevel: string) {
+  if (riskLevel === "In Regs")    return { bg: "#1e3a5f", accent: "#2563eb", text: "#60a5fa", badge: "#2563eb" };
+  if (riskLevel === "Watch Zone") return { bg: "#3d2500", accent: "#d97706", text: "#fbbf24", badge: "#d97706" };
+  return                                 { bg: "#3d0000", accent: "#dc2626", text: "#f87171", badge: "#dc2626" };
+}
+
+// ── Plain-text copy ───────────────────────────────────────────────────────────
+
 function buildPlainText(result: RegResult, inputs: FormData, generated: string, marineName?: string): string {
   const needItems = buildNeedItems(result);
   const perfNote = result.performanceExempt
@@ -122,15 +131,16 @@ function buildPlainText(result: RegResult, inputs: FormData, generated: string, 
   return lines.join("\n");
 }
 
+// ── Print / PDF ───────────────────────────────────────────────────────────────
+
 function printReport(result: RegResult, inputs: FormData, generated: string, marineName?: string) {
   const needItems = buildNeedItems(result);
+  const pal = statusPalette(result.riskLevel);
   const perfNote = result.performanceExempt
     ? `Both PFT &amp; CFT ≥ 285 — BF cap raised to ${result.effectiveMaxBodyFat}% (MARADMIN 066/26)`
     : result.performanceAllowance
     ? `Both PFT &amp; CFT ≥ 250 — +1% BF allowance, effective limit ${result.effectiveMaxBodyFat}% (MARADMIN 066/26)`
     : null;
-
-  const statusColor = result.riskLevel === "In Regs" ? "#2563eb" : result.riskLevel === "Watch Zone" ? "#d97706" : "#dc2626";
   const sexLabel = inputs.sex ? inputs.sex.charAt(0).toUpperCase() + inputs.sex.slice(1) : "—";
 
   const html = `<!DOCTYPE html>
@@ -139,107 +149,154 @@ function printReport(result: RegResult, inputs: FormData, generated: string, mar
 <meta charset="UTF-8"/>
 <title>InRegs BCP Report — ${generated}</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #111; background: #fff; padding: 32px; max-width: 600px; margin: 0 auto; }
-  h1 { font-size: 20px; letter-spacing: 0.15em; color: #2563eb; margin-bottom: 2px; }
-  h2 { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: #555; margin-bottom: 4px; }
-  .subtitle { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #444; margin-bottom: 2px; }
-  .generated { font-size: 10px; color: #888; margin-bottom: 16px; }
-  hr { border: none; border-top: 1px solid #ccc; margin: 12px 0; }
-  .section { margin-bottom: 12px; }
-  .section-title { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.15em; color: #888; margin-bottom: 6px; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
-  .field label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; display: block; margin-bottom: 1px; }
-  .field span { font-size: 12px; font-weight: bold; }
-  .status-banner { border: 2px solid ${statusColor}; padding: 10px 14px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-  .status-label { font-size: 16px; font-weight: bold; color: ${statusColor}; letter-spacing: 0.1em; text-transform: uppercase; }
-  .pf-badge { background: ${result.passFailStatus === "PASS" ? "#2563eb" : "#dc2626"}; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; letter-spacing: 0.1em; }
-  .need-item { font-size: 11px; margin-bottom: 3px; padding-left: 12px; }
-  .need-item::before { content: "• "; }
-  .source-item { font-size: 10px; color: #555; margin-bottom: 2px; }
-  .perf-note { background: #eff6ff; border: 1px solid #bfdbfe; padding: 6px 10px; font-size: 10px; color: #1d4ed8; margin: 8px 0; }
-  .disclaimer { background: #fafafa; border: 1px solid #e5e7eb; padding: 8px 10px; font-size: 9px; color: #6b7280; line-height: 1.5; margin-top: 12px; }
-  @media print { body { padding: 16px; } }
+  body { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: #1e293b; background: #e8eef5; padding: 20px; }
+  .page { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 32px rgba(13,31,60,0.18); }
+
+  /* Header bar */
+  .header-bar { background: linear-gradient(135deg, #0d1f3c 0%, #112a54 60%, #1e4d8c 100%); padding: 20px 24px 18px; }
+  .brand { font-family: 'Rajdhani', 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; color: #fff; letter-spacing: 0.1em; }
+  .brand-sub { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #7eb3ff; margin-top: 2px; }
+  .report-meta { margin-top: 10px; font-size: 9px; color: rgba(180,210,255,0.7); letter-spacing: 0.08em; text-transform: uppercase; }
+  .report-marine { font-size: 13px; font-weight: 700; color: #fff; margin-top: 4px; }
+
+  /* Status banner */
+  .status-banner { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; background: ${pal.bg}; }
+  .status-label { font-family: 'Rajdhani', 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: ${pal.text}; letter-spacing: 0.08em; text-transform: uppercase; }
+  .pf-badge { background: ${result.passFailStatus === "PASS" ? "#2563eb" : "#dc2626"}; color: #fff; font-size: 10px; font-weight: 700; padding: 5px 12px; border-radius: 20px; letter-spacing: 0.12em; text-transform: uppercase; }
+
+  /* Body */
+  .body { padding: 0 24px 24px; }
+
+  /* Section card */
+  .section { background: #f8fafc; border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .section-accent { width: 3px; height: 18px; border-radius: 2px; flex-shrink: 0; }
+  .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #64748b; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+  .field label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8; display: block; margin-bottom: 2px; }
+  .field span { font-size: 12px; font-weight: 700; color: #1e293b; }
+
+  /* Perf note */
+  .perf-note { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; font-size: 10px; color: #1d4ed8; margin-top: 8px; line-height: 1.5; }
+
+  /* Need item */
+  .need-item { font-size: 10px; color: #334155; line-height: 1.6; margin-bottom: 4px; padding-left: 12px; position: relative; }
+  .need-item::before { content: "•"; position: absolute; left: 0; color: #2563eb; }
+
+  /* Sources */
+  .source-item { font-size: 10px; color: #64748b; margin-bottom: 3px; padding-left: 12px; position: relative; }
+  .source-item::before { content: "•"; position: absolute; left: 0; color: #94a3b8; }
+
+  /* Disclaimer */
+  .disclaimer { background: #f1f5f9; border-radius: 10px; padding: 12px 14px; margin-top: 14px; }
+  .disclaimer-title { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #94a3b8; margin-bottom: 4px; }
+  .disclaimer-text { font-size: 9px; color: #64748b; line-height: 1.6; }
+
+  @media print { body { background: #fff; padding: 0; } .page { box-shadow: none; border-radius: 0; } }
 </style>
 </head>
 <body>
-  <h1>IN REGS</h1>
-  <p class="subtitle">USMC BCP Assessment Report</p>
-  <p class="generated">Generated: ${generated}</p>
-  ${marineName ? `<p class="generated" style="font-size:12px;font-weight:bold;color:#111;margin-top:-6px;">Marine: ${marineName}</p>` : ""}
-  <hr/>
-
-  <div class="section">
-    <div class="section-title">Personal Info</div>
-    <div class="grid2">
-      <div class="field"><label>Sex</label><span>${sexLabel}</span></div>
-      <div class="field"><label>Age</label><span>${inputs.age || "—"}</span></div>
-      <div class="field"><label>Height</label><span>${formatHeight(inputs.heightInches)}</span></div>
-      <div class="field"><label>Weight</label><span>${inputs.weightLbs || "—"} lbs</span></div>
-    </div>
+<div class="page">
+  <div class="header-bar">
+    <div class="brand">IN REGS</div>
+    <div class="brand-sub">USMC BCP Assessment Report</div>
+    ${marineName ? `<div class="report-marine">${marineName}</div>` : ""}
+    <div class="report-meta">Generated: ${generated}</div>
   </div>
 
-  <div class="section">
-    <div class="section-title">Measurements</div>
-    <div class="grid2">
-      <div class="field"><label>Neck</label><span>${inputs.neckInches || "—"} in</span></div>
-      <div class="field"><label>Waist</label><span>${inputs.waistInches || "—"} in</span></div>
-      ${inputs.hipInches ? `<div class="field"><label>Hip</label><span>${inputs.hipInches} in</span></div>` : ""}
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Fitness Scores</div>
-    <div class="grid2">
-      <div class="field"><label>PFT</label><span>${inputs.pftScore || "—"} / 300</span></div>
-      <div class="field"><label>CFT</label><span>${inputs.cftScore || "—"} / 300</span></div>
-    </div>
-    ${perfNote ? `<div class="perf-note">${perfNote}</div>` : ""}
-  </div>
-
-  <hr/>
   <div class="status-banner">
     <span class="status-label">${result.riskLevel}</span>
     <span class="pf-badge">${result.passFailStatus}</span>
   </div>
 
-  <div class="section">
-    <div class="section-title">Assessment Results</div>
-    <div class="grid2">
-      <div class="field"><label>Max Allowable Weight</label><span>${result.maxAllowableWeight} lbs</span></div>
-      <div class="field"><label>Estimated Body Fat</label><span>${result.estimatedBodyFat}%</span></div>
-      <div class="field"><label>Body Fat Limit</label><span>${result.effectiveMaxBodyFat}% (base ${result.maxBodyFat}%)</span></div>
-      <div class="field"><label>WHtR Ratio</label><span>${result.whtrRatio.toFixed(3)} — ${result.whtrPass ? "PASS" : "FAIL"}</span></div>
-      ${result.whtrMaxWaist !== null ? `<div class="field"><label>Max Waist (WHtR)</label><span>${result.whtrMaxWaist}" at your height</span></div>` : ""}
+  <div class="body">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-accent" style="background:#2563eb;"></div>
+        <div class="section-title">Personal Info</div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Sex</label><span>${sexLabel}</span></div>
+        <div class="field"><label>Age</label><span>${inputs.age || "—"}</span></div>
+        <div class="field"><label>Height</label><span>${formatHeight(inputs.heightInches)}</span></div>
+        <div class="field"><label>Weight</label><span>${inputs.weightLbs || "—"} lbs</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-accent" style="background:#16a34a;"></div>
+        <div class="section-title">Body Measurements</div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Neck</label><span>${inputs.neckInches || "—"} in</span></div>
+        <div class="field"><label>Waist</label><span>${inputs.waistInches || "—"} in</span></div>
+        ${inputs.hipInches ? `<div class="field"><label>Hip</label><span>${inputs.hipInches} in</span></div>` : ""}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-accent" style="background:#d97706;"></div>
+        <div class="section-title">Fitness Scores</div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>PFT</label><span>${inputs.pftScore || "—"} / 300</span></div>
+        <div class="field"><label>CFT</label><span>${inputs.cftScore || "—"} / 300</span></div>
+      </div>
+      ${perfNote ? `<div class="perf-note">${perfNote}</div>` : ""}
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-accent" style="background:${pal.accent};"></div>
+        <div class="section-title">Assessment Results</div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Max Weight</label><span>${result.maxAllowableWeight} lbs</span></div>
+        <div class="field"><label>Body Fat Est.</label><span>${result.estimatedBodyFat}%</span></div>
+        <div class="field"><label>BF Limit</label><span>${result.effectiveMaxBodyFat}% (base ${result.maxBodyFat}%)</span></div>
+        <div class="field"><label>WHtR Ratio</label><span style="color:${result.whtrPass ? "#2563eb" : "#dc2626"}">${result.whtrRatio.toFixed(3)} — ${result.whtrPass ? "PASS" : "FAIL"}</span></div>
+        ${result.whtrMaxWaist !== null ? `<div class="field"><label>Max Waist (WHtR)</label><span>${result.whtrMaxWaist}" at your height</span></div>` : ""}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-accent" style="background:#7c3aed;"></div>
+        <div class="section-title">What Do I Need?</div>
+      </div>
+      ${needItems.map(i => `<div class="need-item">${i}</div>`).join("")}
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-accent" style="background:#64748b;"></div>
+        <div class="section-title">Sources</div>
+      </div>
+      ${SOURCES.map(s => `<div class="source-item">${s}</div>`).join("")}
+    </div>
+
+    <div class="disclaimer">
+      <div class="disclaimer-title">Unofficial Disclaimer</div>
+      <div class="disclaimer-text">${DISCLAIMER}</div>
     </div>
   </div>
-
-  <hr/>
-  <div class="section">
-    <div class="section-title">What Do I Need?</div>
-    ${needItems.map(i => `<div class="need-item">${i}</div>`).join("")}
-  </div>
-
-  <hr/>
-  <div class="section">
-    <div class="section-title">Sources</div>
-    ${SOURCES.map(s => `<div class="source-item">• ${s}</div>`).join("")}
-  </div>
-
-  <div class="disclaimer">
-    <strong>UNOFFICIAL DISCLAIMER</strong><br/>
-    ${DISCLAIMER}
-  </div>
+</div>
 </body>
 </html>`;
 
-  const win = window.open("", "_blank", "width=700,height=900");
+  const win = window.open("", "_blank", "width=720,height=960");
   if (!win) return;
   win.document.write(html);
   win.document.close();
   win.focus();
-  setTimeout(() => { win.print(); }, 400);
+  setTimeout(() => { win.print(); }, 500);
 }
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
 
 export function ReportModal({ open, onClose, result, inputs, marineName }: ReportModalProps) {
   const [copied, setCopied] = useState(false);
@@ -257,14 +314,11 @@ export function ReportModal({ open, onClose, result, inputs, marineName }: Repor
 
   const handlePrint = () => printReport(result, inputs, generated, marineName);
 
-  const needItems = buildNeedItems(result);
-  const allGood = needItems.every(i => i.includes("— good"));
-  const sexLabel = inputs.sex ? inputs.sex.charAt(0).toUpperCase() + inputs.sex.slice(1) : "—";
-  const statusColor = result.riskLevel === "In Regs"
-    ? "border-primary text-primary"
-    : result.riskLevel === "Watch Zone"
-    ? "border-yellow-500 text-yellow-600"
-    : "border-destructive text-destructive";
+  const needItems   = buildNeedItems(result);
+  const allGood     = needItems.every(i => i.includes("— good"));
+  const sexLabel    = inputs.sex ? inputs.sex.charAt(0).toUpperCase() + inputs.sex.slice(1) : "—";
+  const pal         = statusPalette(result.riskLevel);
+
   const perfNote = result.performanceExempt
     ? `Both PFT & CFT ≥ 285 — BF cap raised to ${result.effectiveMaxBodyFat}% (MARADMIN 066/26)`
     : result.performanceAllowance
@@ -273,154 +327,188 @@ export function ReportModal({ open, onClose, result, inputs, marineName }: Repor
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto p-0 gap-0">
-        {/* Action bar */}
-        <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 text-xs uppercase tracking-widest font-bold gap-1.5 text-muted-foreground hover:text-foreground shrink-0 px-2"
+      <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl overflow-hidden">
+
+        {/* ── Sticky action bar ── */}
+        <div
+          className="sticky top-0 z-10 px-4 py-3 flex items-center gap-2"
+          style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #112a54 100%)" }}
+        >
+          <button
             onClick={onClose}
             aria-label="Back to app"
+            className="flex items-center gap-1.5 h-8 px-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors"
+            style={{ color: "rgba(180,210,255,0.75)" }}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back
-          </Button>
+          </button>
           <DialogHeader className="p-0 flex-1 min-w-0">
-            <DialogTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground truncate">
+            <DialogTitle
+              className="text-xs font-bold uppercase tracking-widest truncate"
+              style={{ color: "rgba(150,190,255,0.6)" }}
+            >
               Assessment Report
             </DialogTitle>
           </DialogHeader>
           <div className="flex gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs uppercase tracking-widest font-bold gap-1.5"
+            <button
               onClick={handleCopy}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold uppercase tracking-widest border transition-colors"
+              style={{
+                borderColor: "rgba(255,255,255,0.15)",
+                color: copied ? "#86efac" : "rgba(180,210,255,0.85)",
+                background: "rgba(255,255,255,0.06)",
+              }}
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? "Copied!" : "Copy"}
-            </Button>
-            <Button
-              size="sm"
-              className="h-8 text-xs uppercase tracking-widest font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+            </button>
+            <button
               onClick={handlePrint}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
+              style={{
+                background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
+                color: "#ffffff",
+                boxShadow: "0 2px 8px rgba(37,99,235,0.4)",
+              }}
             >
               <Printer className="w-3.5 h-3.5" />
               Print / PDF
-            </Button>
+            </button>
           </div>
         </div>
 
-        {/* Report content */}
-        <div className="px-5 py-4 font-mono text-sm flex flex-col gap-0">
+        {/* ── Hero / identity band ── */}
+        <div
+          style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1a3a6e 60%, #1e5799 100%)" }}
+          className="px-5 py-5"
+        >
+          <h2
+            className="text-2xl font-bold"
+            style={{ fontFamily: "'Rajdhani', 'JetBrains Mono', monospace", color: "#fff", letterSpacing: "0.08em" }}
+          >
+            IN REGS
+          </h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "#7eb3ff" }}>
+            USMC BCP Assessment Report
+          </p>
+          {marineName && (
+            <p className="text-sm font-bold font-mono text-white mt-2">{marineName}</p>
+          )}
+          <p className="text-[10px] mt-1" style={{ color: "rgba(150,190,255,0.6)" }}>{generated}</p>
+        </div>
 
-          {/* Header */}
-          <div className="pb-4 border-b border-border">
-            <h2 className="text-xl font-bold tracking-wider text-primary">IN REGS</h2>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mt-0.5">USMC BCP Assessment Report</p>
-            {marineName && (
-              <p className="text-sm font-bold font-mono text-foreground mt-1">{marineName}</p>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">{generated}</p>
-          </div>
+        {/* ── Status banner ── */}
+        <div
+          className="px-5 py-4 flex items-center justify-between"
+          style={{ background: pal.bg }}
+        >
+          <span
+            className="text-xl font-bold uppercase tracking-widest"
+            style={{ fontFamily: "'Rajdhani', 'JetBrains Mono', monospace", color: pal.text }}
+          >
+            {result.riskLevel}
+          </span>
+          <span
+            className="text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full"
+            style={{
+              background: result.passFailStatus === "PASS" ? "#2563eb" : "#dc2626",
+              color: "#ffffff",
+            }}
+          >
+            {result.passFailStatus}
+          </span>
+        </div>
 
-          {/* Personal Info */}
-          <ReportSection label="Personal Info">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-              <ReportField label="Sex" value={sexLabel} />
-              <ReportField label="Age" value={`${inputs.age || "—"}`} />
+        {/* ── Report body ── */}
+        <div
+          className="flex flex-col gap-3 px-4 py-4"
+          style={{ background: "#e8eef5" }}
+        >
+          <ReportCard label="Personal Info" accent="#2563eb">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <ReportField label="Sex"    value={sexLabel} />
+              <ReportField label="Age"    value={`${inputs.age || "—"}`} />
               <ReportField label="Height" value={formatHeight(inputs.heightInches)} />
               <ReportField label="Weight" value={`${inputs.weightLbs || "—"} lbs`} />
             </div>
-          </ReportSection>
+          </ReportCard>
 
-          {/* Measurements */}
-          <ReportSection label="Measurements">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-              <ReportField label="Neck" value={`${inputs.neckInches || "—"} in`} />
+          <ReportCard label="Body Measurements" accent="#16a34a">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <ReportField label="Neck"  value={`${inputs.neckInches || "—"} in`} />
               <ReportField label="Waist" value={`${inputs.waistInches || "—"} in`} />
               {inputs.hipInches && <ReportField label="Hip" value={`${inputs.hipInches} in`} />}
             </div>
-          </ReportSection>
+          </ReportCard>
 
-          {/* Fitness */}
-          <ReportSection label="Fitness Scores">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <ReportCard label="Fitness Scores" accent="#d97706">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               <ReportField label="PFT" value={`${inputs.pftScore || "—"} / 300`} />
               <ReportField label="CFT" value={`${inputs.cftScore || "—"} / 300`} />
             </div>
             {perfNote && (
-              <p className="text-xs text-primary bg-primary/5 border border-primary/30 px-3 py-2 mt-2 leading-relaxed">
+              <div
+                className="mt-3 px-3 py-2 rounded-xl text-xs leading-relaxed"
+                style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8" }}
+              >
                 {perfNote}
-              </p>
+              </div>
             )}
-          </ReportSection>
+          </ReportCard>
 
-          {/* Status */}
-          <div className={`border-2 px-4 py-3 my-3 flex items-center justify-between ${statusColor.split(" ")[0]} bg-transparent`}>
-            <span className={`font-bold text-base tracking-widest uppercase ${statusColor.split(" ")[1]}`}>
-              {result.riskLevel}
-            </span>
-            <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 ${
-              result.passFailStatus === "PASS"
-                ? "bg-primary text-primary-foreground"
-                : "bg-destructive text-destructive-foreground"
-            }`}>
-              {result.passFailStatus}
-            </span>
-          </div>
-
-          {/* Assessment Results */}
-          <ReportSection label="Assessment Results">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-              <ReportField label="Max Weight" value={`${result.maxAllowableWeight} lbs`} />
+          <ReportCard label="Assessment Results" accent={pal.accent}>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <ReportField label="Max Weight"    value={`${result.maxAllowableWeight} lbs`} />
               <ReportField label="Body Fat Est." value={`${result.estimatedBodyFat}%`} />
-              <ReportField label="BF Limit" value={`${result.effectiveMaxBodyFat}% (base ${result.maxBodyFat}%)`} />
+              <ReportField label="BF Limit"      value={`${result.effectiveMaxBodyFat}% (base ${result.maxBodyFat}%)`} />
               <ReportField
-                label="WHtR"
+                label="WHtR Ratio"
                 value={`${result.whtrRatio.toFixed(3)} — ${result.whtrPass ? "PASS" : "FAIL"}`}
-                accent={result.whtrPass ? "text-primary" : "text-destructive"}
+                valueColor={result.whtrPass ? "#2563eb" : "#dc2626"}
               />
               {result.whtrMaxWaist !== null && (
                 <ReportField label="Max Waist (WHtR)" value={`${result.whtrMaxWaist}" at your height`} />
               )}
             </div>
-          </ReportSection>
+          </ReportCard>
 
-          {/* What Do I Need */}
-          <ReportSection label="What Do I Need?">
+          <ReportCard label="What Do I Need?" accent="#7c3aed">
             {allGood ? (
-              <p className="text-xs text-primary font-bold">No immediate reduction required</p>
+              <p className="text-xs font-bold" style={{ color: "#16a34a" }}>
+                No immediate reduction required — all metrics clear.
+              </p>
             ) : (
-              <ul className="space-y-1">
+              <ul className="flex flex-col gap-2">
                 {needItems.map((item) => (
-                  <li key={item} className="text-xs leading-relaxed flex gap-2">
-                    <span className="text-muted-foreground shrink-0">•</span>
+                  <li key={item} className="text-xs leading-relaxed flex gap-2" style={{ color: "#334155" }}>
+                    <span className="shrink-0" style={{ color: "#2563eb" }}>•</span>
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
             )}
-          </ReportSection>
+          </ReportCard>
 
-          {/* Sources */}
-          <ReportSection label="Sources">
-            <ul className="space-y-0.5">
+          <ReportCard label="Sources" accent="#64748b">
+            <ul className="flex flex-col gap-1.5">
               {SOURCES.map((s) => (
-                <li key={s} className="text-xs text-muted-foreground flex gap-2">
+                <li key={s} className="text-xs flex gap-2" style={{ color: "#64748b" }}>
                   <span className="shrink-0">•</span><span>{s}</span>
                 </li>
               ))}
             </ul>
-          </ReportSection>
+          </ReportCard>
 
-          {/* Disclaimer */}
-          <div className="mt-2 border border-border/60 bg-muted/30 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+          <div
+            className="rounded-xl px-4 py-3"
+            style={{ background: "rgba(255,255,255,0.7)" }}
+          >
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: "#94a3b8" }}>
               Unofficial Disclaimer
             </p>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">{DISCLAIMER}</p>
+            <p className="text-[11px] leading-relaxed" style={{ color: "#64748b" }}>{DISCLAIMER}</p>
           </div>
         </div>
       </DialogContent>
@@ -428,20 +516,56 @@ export function ReportModal({ open, onClose, result, inputs, marineName }: Repor
   );
 }
 
-function ReportSection({ label, children }: { label: string; children: React.ReactNode }) {
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function ReportCard({
+  label,
+  accent,
+  children,
+}: {
+  label: string;
+  accent: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="py-3 border-b border-border/50">
-      <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
+    <div
+      className="rounded-2xl p-4"
+      style={{
+        background: "rgba(255,255,255,0.92)",
+        boxShadow: "0 2px 8px rgba(15,31,60,0.07)",
+      }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-1 h-4 rounded-full" style={{ background: accent }} />
+        <span
+          className="text-[9px] font-bold uppercase tracking-widest"
+          style={{ color: "#64748b" }}
+        >
+          {label}
+        </span>
+      </div>
       {children}
     </div>
   );
 }
 
-function ReportField({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function ReportField({
+  label,
+  value,
+  valueColor,
+}: {
+  label: string;
+  value: string;
+  valueColor?: string;
+}) {
   return (
     <div>
-      <p className="text-[9px] uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className={`text-sm font-bold font-mono ${accent ?? "text-foreground"}`}>{value}</p>
+      <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#94a3b8" }}>
+        {label}
+      </p>
+      <p className="text-sm font-bold font-mono" style={{ color: valueColor ?? "#1e293b" }}>
+        {value}
+      </p>
     </div>
   );
 }
