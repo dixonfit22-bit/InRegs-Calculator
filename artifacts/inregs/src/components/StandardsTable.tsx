@@ -266,23 +266,27 @@ export function StandardsTable() {
         </div>
 
         <div className="border border-border overflow-hidden rounded-md max-h-80 overflow-y-auto">
-          <div className="grid grid-cols-2 bg-muted border-b border-border sticky top-0 z-10">
+          <div className="grid grid-cols-3 bg-muted border-b border-border sticky top-0 z-10">
             <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground text-center">
               Height (in)
             </div>
             <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary text-center border-l border-border">
               Max Waist (in)
             </div>
+            <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary/60 text-center border-l border-border">
+              Max Ratio
+            </div>
           </div>
 
           {WHTR_ROWS.map(({ key, heightIn, maxWaist }, i) => {
             const isHighlighted = key === highlightedWhtrKey;
-            const displayHeight = Number.isInteger(heightIn) ? `${heightIn}"` : `${heightIn}"`;
+            const displayHeight = `${heightIn}"`;
+            const maxRatio = (maxWaist / heightIn).toFixed(3);
             return (
               <div
                 key={key}
                 ref={(el) => { whtrRowRefs.current[key] = el; }}
-                className={`grid grid-cols-2 border-b border-border/50 last:border-b-0 transition-colors duration-300 ${
+                className={`grid grid-cols-3 border-b border-border/50 last:border-b-0 transition-colors duration-300 ${
                   isHighlighted
                     ? "bg-primary text-primary-foreground"
                     : i % 2 === 0
@@ -296,6 +300,9 @@ export function StandardsTable() {
                 </div>
                 <div className={`px-3 py-2 text-sm font-mono font-bold text-center border-l ${isHighlighted ? "border-primary-foreground/20 text-primary-foreground" : "border-border/50 text-primary"}`}>
                   {maxWaist}"
+                </div>
+                <div className={`px-3 py-2 text-sm font-mono text-center border-l ${isHighlighted ? "border-primary-foreground/20 text-primary-foreground/80" : "border-border/50 text-primary/70"}`}>
+                  {maxRatio}
                 </div>
               </div>
             );
