@@ -6,7 +6,7 @@ import Calculator from "@/pages/Calculator";
 const queryClient = new QueryClient();
 
 function App() {
-  document.documentElement.classList.add('dark');
+  document.documentElement.classList.remove('dark');
 
   return (
     <QueryClientProvider client={queryClient}>
