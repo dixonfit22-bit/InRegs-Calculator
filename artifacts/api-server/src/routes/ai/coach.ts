@@ -173,8 +173,8 @@ const QUICK_PICK_PROMPTS: Record<string, (ctx: string) => string> = {
   // ── Workout ────────────────────────────────────────────────────────────────
   "improve-run": (ctx) =>
     `${ctx}\n\nQuestion: How do I improve my PFT 3-mile run time? Give specific training methods, pacing strategies, weekly run structure, and what mistakes to avoid.`,
-  "upper-body": (ctx) =>
-    `${ctx}\n\nQuestion: Give me an upper-body strength circuit focused on improving pull-ups and push-ups for the PFT. Include specific exercises, sets, reps, progression tips, and a simple weekly schedule.`,
+  "full-body": (ctx) =>
+    `${ctx}\n\nQuestion: Give me a full-body strength program that hits every major muscle group and supports BCP body recomposition. Include specific exercises for legs, core, chest, back, and shoulders — with sets, reps, rest periods, and a simple weekly structure.`,
   "field-workouts": (ctx) =>
     `${ctx}\n\nQuestion: What are the best workouts I can do in the field with zero equipment? Give me a bodyweight circuit and a running protocol I can execute anywhere.`,
   "recovery": (ctx) =>

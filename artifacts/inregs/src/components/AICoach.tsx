@@ -65,7 +65,7 @@ const WORKOUT_PICKS = [
   { id: "pft-prep",       label: "Build a PFT Prep Plan",          icon: "🏅", mode: "form"  },
   { id: "cft-prep",       label: "Build a CFT Prep Plan",          icon: "⚔️", mode: "form"  },
   { id: "improve-run",    label: "Improve My Run Time",            icon: "⏱️", mode: "quick" },
-  { id: "upper-body",     label: "Upper Body Strength",            icon: "💪", mode: "quick" },
+  { id: "full-body",      label: "Full Body Strength",             icon: "💪", mode: "quick" },
   { id: "field-workouts", label: "Field Workouts (No Gear)",       icon: "🪖", mode: "quick" },
   { id: "recovery",       label: "Recovery & Mobility",            icon: "🧘", mode: "quick" },
 ] as const;
