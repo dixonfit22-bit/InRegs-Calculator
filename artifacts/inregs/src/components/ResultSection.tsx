@@ -8,6 +8,7 @@ import { ReportModal } from "./ReportModal";
 import { ReadinessPlanner } from "./ReadinessPlanner";
 import { SaveProfileButton } from "./ProfileLoader";
 import { ProgressTracker } from "./ProgressTracker";
+import { AICoach } from "./AICoach";
 
 // ── Fonts ─────────────────────────────────────────────────────────────────────
 
@@ -537,7 +538,10 @@ export function ResultSection({
         />
       )}
 
-      {/* 7 — Save profile */}
+      {/* 7 — AI Coach */}
+      <AICoach result={result} inputs={inputs} />
+
+      {/* 8 — Save profile */}
       <SaveProfileButton
         result={result}
         inputs={inputs}
