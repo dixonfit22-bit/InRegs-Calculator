@@ -209,8 +209,8 @@ router.post("/ai/coach", async (req, res) => {
   try {
     const isQuickPick = mode === "quickPick";
     const stream = await openai.chat.completions.create({
-      model: "gpt-5",
-      max_completion_tokens: isQuickPick ? 600 : 3500,
+      model: "gpt-4o",
+      max_tokens: isQuickPick ? 800 : 4096,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user",   content: userPrompt },
