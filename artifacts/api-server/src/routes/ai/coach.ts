@@ -81,30 +81,34 @@ Return valid JSON:
   "fieldOptions": ["MRE tip or field-friendly option 1", "option 2", "option 3"],
   "coachingTips": ["specific actionable tip 1", "tip 2", "tip 3", "tip 4"],
   "workoutPlan": {
-    "goal": "one sentence fitness goal based on their data",
+    "goal": "one sentence fitness goal",
     "daysPerWeek": number,
     "weeks": [
       {
-        "label": "Week 1–2: Base Building",
+        "label": "Week 1–2: Base",
         "sessions": [
-          { "day": "Monday", "type": "Run / Cardio", "details": "specific workout" },
-          { "day": "Tuesday", "type": "Strength", "details": "..." },
-          { "day": "Wednesday", "type": "Active Recovery", "details": "..." },
-          { "day": "Thursday", "type": "Run / Cardio", "details": "..." },
-          { "day": "Friday", "type": "Strength", "details": "..." },
-          { "day": "Saturday", "type": "Long Run / PT Event Prep", "details": "..." },
-          { "day": "Sunday", "type": "Rest", "details": "Full rest or light mobility work" }
+          { "day": "Mon", "type": "Run / Cardio", "details": "specific workout, concise" },
+          { "day": "Tue", "type": "Strength", "details": "..." },
+          { "day": "Wed", "type": "Rest / Recovery", "details": "..." },
+          { "day": "Thu", "type": "Run / Cardio", "details": "..." },
+          { "day": "Fri", "type": "Strength", "details": "..." }
         ]
       },
       {
         "label": "Week 3–4: Build",
-        "sessions": [ { "day": "Monday", "type": "Run / Cardio", "details": "..." }, { "day": "Tuesday", "type": "Strength", "details": "..." }, { "day": "Wednesday", "type": "Active Recovery", "details": "..." }, { "day": "Thursday", "type": "Run / Cardio", "details": "..." }, { "day": "Friday", "type": "Strength", "details": "..." }, { "day": "Saturday", "type": "Long Run / PT Event Prep", "details": "..." }, { "day": "Sunday", "type": "Rest", "details": "Full rest or light mobility work" } ]
+        "sessions": [
+          { "day": "Mon", "type": "Run / Cardio", "details": "progressive step up from week 1-2" },
+          { "day": "Tue", "type": "Strength", "details": "..." },
+          { "day": "Wed", "type": "Rest / Recovery", "details": "..." },
+          { "day": "Thu", "type": "Run / Cardio", "details": "..." },
+          { "day": "Fri", "type": "Strength + PT Prep", "details": "..." }
+        ]
       }
     ]
   }
 }
 
-Sampleday calories must sum close to dailyCalories. Macros must be mathematically consistent (protein × 4 + carbs × 4 + fat × 9 ≈ dailyCalories). Be specific — no vague advice.
+Keep all text fields concise — 1 sentence max per field. SampleDay calories must sum close to dailyCalories. Macros: protein×4 + carbs×4 + fat×9 ≈ dailyCalories.
 
 ## RESPONSE FORMAT FOR QUICK QUESTIONS
 Return valid JSON:
@@ -203,9 +207,10 @@ router.post("/ai/coach", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
 
   try {
+    const isQuickPick = mode === "quickPick";
     const stream = await openai.chat.completions.create({
       model: "gpt-5",
-      max_completion_tokens: 8192,
+      max_completion_tokens: isQuickPick ? 600 : 3500,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user",   content: userPrompt },
