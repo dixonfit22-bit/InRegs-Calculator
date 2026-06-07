@@ -120,12 +120,44 @@ Return valid JSON:
   "safetyNote": "string or null"
 }
 
+## RESPONSE FORMAT FOR WORKOUT-ONLY PLANS
+Return valid JSON:
+{
+  "mode": "workoutOnly",
+  "summary": "2-3 sentences on their fitness situation and the training mission",
+  "keyTips": ["actionable tip 1", "tip 2", "tip 3"],
+  "weeks": [
+    {
+      "label": "Week 1–2: Foundation",
+      "sessions": [
+        { "day": "Mon", "type": "Run / Cardio", "details": "specific workout with distances/times/sets" },
+        { "day": "Tue", "type": "Strength",     "details": "specific exercises, sets, reps" },
+        { "day": "Wed", "type": "Rest / Recovery", "details": "active recovery or full rest" },
+        { "day": "Thu", "type": "Run / Cardio", "details": "..." },
+        { "day": "Fri", "type": "Strength",     "details": "..." }
+      ]
+    },
+    {
+      "label": "Week 3–4: Progression",
+      "sessions": [
+        { "day": "Mon", "type": "Run / Cardio", "details": "progressive increase over week 1-2" },
+        { "day": "Tue", "type": "Strength",     "details": "..." },
+        { "day": "Wed", "type": "Rest / Recovery", "details": "..." },
+        { "day": "Thu", "type": "Run / Cardio", "details": "..." },
+        { "day": "Fri", "type": "Strength + PT Prep", "details": "..." }
+      ]
+    }
+  ]
+}
+Keep details concise — 1-2 sentences per session. Be specific with exercises, not vague.
+
 ## TONE
 Direct. Motivating. Marine-focused. No fluff. Never sound like a doctor or official command guidance. Keep it real — talk like a knowledgeable NCO, not a medical professional.`;
 
 // ── Quick pick prompts ────────────────────────────────────────────────────────
 
 const QUICK_PICK_PROMPTS: Record<string, (ctx: string) => string> = {
+  // ── Nutrition ──────────────────────────────────────────────────────────────
   "pre-pft-nutrition": (ctx) =>
     `${ctx}\n\nQuestion: What should I eat and drink in the 24-48 hours before a PFT? Give specific foods, timing, and what to avoid.`,
   "post-training-nutrition": (ctx) =>
@@ -138,6 +170,15 @@ const QUICK_PICK_PROMPTS: Record<string, (ctx: string) => string> = {
     `${ctx}\n\nQuestion: Explain exactly what my BCP numbers mean for my career and health. Be direct about the risk level and what will happen if I don't address it. What's my most urgent priority?`,
   "grocery-list": (ctx) =>
     `${ctx}\n\nQuestion: Give me a practical weekly grocery list for my goal. Affordable, easy to prep, good for performance. Include specific items, approximate quantities, and why each food helps.`,
+  // ── Workout ────────────────────────────────────────────────────────────────
+  "improve-run": (ctx) =>
+    `${ctx}\n\nQuestion: How do I improve my PFT 3-mile run time? Give specific training methods, pacing strategies, weekly run structure, and what mistakes to avoid.`,
+  "upper-body": (ctx) =>
+    `${ctx}\n\nQuestion: Give me an upper-body strength circuit focused on improving pull-ups and push-ups for the PFT. Include specific exercises, sets, reps, progression tips, and a simple weekly schedule.`,
+  "field-workouts": (ctx) =>
+    `${ctx}\n\nQuestion: What are the best workouts I can do in the field with zero equipment? Give me a bodyweight circuit and a running protocol I can execute anywhere.`,
+  "recovery": (ctx) =>
+    `${ctx}\n\nQuestion: Give me a practical recovery and mobility routine for a Marine doing regular PT. Include specific stretches, foam rolling, and sleep/hydration tips to stay injury-free and recover faster.`,
 };
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -151,8 +192,10 @@ router.post("/ai/coach", async (req, res) => {
     // Mode
     mode,
     quickPickType,
-    // Full plan inputs
+    // Nutrition plan inputs
     goal, activityLevel, trainingFrequency, dietaryRestrictions, targetTimeline,
+    // Workout plan inputs
+    workoutGoal, fitnessLevel, equipment, trainingDays, injuries,
   } = req.body;
 
   if (!sex || !age || !weightLbs) {
@@ -181,24 +224,34 @@ router.post("/ai/coach", async (req, res) => {
 
   if (mode === "quickPick" && quickPickType && QUICK_PICK_PROMPTS[quickPickType]) {
     userPrompt = QUICK_PICK_PROMPTS[quickPickType](bcpContext);
+  } else if (mode === "workoutOnly") {
+    userPrompt = [
+      bcpContext,
+      `=== WORKOUT INPUTS ===`,
+      workoutGoal    ? `Training Goal: ${workoutGoal}`         : "",
+      fitnessLevel   ? `Fitness Level: ${fitnessLevel}`        : "",
+      equipment      ? `Equipment: ${equipment}`               : "",
+      trainingDays   ? `Training Days/Week: ${trainingDays}`   : "",
+      injuries       ? `Injuries/Limitations: ${injuries}`     : "",
+      ``,
+      `=== INSTRUCTIONS ===`,
+      `Generate a 4-week workout-only plan using the WORKOUT-ONLY response format. No nutrition content. Be specific with exercises, sets, reps, distances, and times. Progress appropriately from Week 1-2 to Week 3-4. Respect any stated injuries.`,
+    ].filter(Boolean).join("\n");
   } else {
-    // Full plan
-    const goalLine    = goal            ? `Goal: ${goal}` : "";
-    const actLine     = activityLevel   ? `Activity Level: ${activityLevel}` : "";
-    const freqLine    = trainingFrequency ? `Training Frequency: ${trainingFrequency} days/week` : "";
-    const dietLine    = dietaryRestrictions ? `Dietary Restrictions/Preferences: ${dietaryRestrictions}` : "Dietary Restrictions: None specified";
-    const timelineLine = targetTimeline ? `Target Timeline: ${targetTimeline}` : "";
-
+    // Full nutrition + workout plan
     const minCal = sex === "female" ? MIN_CALORIES.female : MIN_CALORIES.male;
-
     userPrompt = [
       bcpContext,
       `=== PLAN INPUTS ===`,
-      goalLine, actLine, freqLine, dietLine, timelineLine,
+      goal              ? `Goal: ${goal}`                                   : "",
+      activityLevel     ? `Activity Level: ${activityLevel}`               : "",
+      trainingFrequency ? `Training Frequency: ${trainingFrequency} days/week` : "",
+      dietaryRestrictions ? `Dietary Restrictions: ${dietaryRestrictions}` : "Dietary Restrictions: None specified",
+      targetTimeline    ? `Target Timeline: ${targetTimeline}`             : "",
       ``,
       `=== INSTRUCTIONS ===`,
-      `Generate a complete 4-week BCP Readiness Plan. Apply the Mifflin-St Jeor equation with the correct activity multiplier. Do NOT set calories below ${minCal}/day. Cap weight loss at 2 lbs/week maximum. If the goal is aggressive, include a safetyWarning.`,
-      `BCP Priority: ${riskLevel === "Out of Regs" ? "URGENT — needs to pass BCP. Moderate deficit, high protein, maintain performance." : riskLevel === "Watch Zone" ? "PREVENT DECLINE — moderate deficit, protect PFT/CFT output." : "OPTIMIZE — maintain standards, body recomp, improve performance."}`,
+      `Generate a complete 4-week BCP Readiness Plan (fullPlan format). Apply Mifflin-St Jeor with the correct activity multiplier. Do NOT set calories below ${minCal}/day. Cap weight loss at 2 lbs/week. Include a safetyWarning if the goal is aggressive.`,
+      `BCP Priority: ${riskLevel === "Out of Regs" ? "URGENT — moderate deficit, high protein, maintain performance." : riskLevel === "Watch Zone" ? "PREVENT DECLINE — moderate deficit, protect PFT/CFT output." : "OPTIMIZE — maintain standards, body recomp, improve performance."}`,
     ].filter(Boolean).join("\n");
   }
 
